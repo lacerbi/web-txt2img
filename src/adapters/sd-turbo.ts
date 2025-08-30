@@ -24,7 +24,8 @@ export class SDTurboAdapter implements Adapter {
     text_encoder?: any;
     vae_decoder?: any;
   } = {};
-  private tokenizer: any | null = null;
+  private tokenizerFn: ((text: string, opts?: any) => Promise<{ input_ids: number[] }>) | null = null;
+  private tokenizerProvider: (() => Promise<(text: string, opts?: any) => Promise<{ input_ids: number[] }>>) | null = null;
   private modelBase = 'https://huggingface.co/schmuell/sd-turbo-ort-web/resolve/main';
 
   checkSupport(c: Capabilities): BackendId[] {
@@ -42,30 +43,33 @@ export class SDTurboAdapter implements Adapter {
     let chosen = preferred.find((b) => supported.includes(b));
     if (!chosen) return { ok: false, reason: 'backend_unavailable', message: 'No viable backend for SD-Turbo' };
 
-    // Lazy import onnxruntime-web only when needed
+    // Resolve model base URL override
+    if (options.modelBaseUrl) this.modelBase = options.modelBaseUrl;
+    if (options.tokenizerProvider) this.tokenizerProvider = options.tokenizerProvider;
+
+    // Resolve ORT runtime: injected → dynamic import → global
     try {
-      let ort: any = null;
-      if (chosen === 'webgpu') {
-        ort = await import('onnxruntime-web/webgpu').catch(() => null);
-      } else if (chosen === 'webnn') {
-        ort = await import('onnxruntime-web/webnn').catch(() => null);
-      } else {
-        ort = await import('onnxruntime-web/wasm').catch(async () => await import('onnxruntime-web').catch(() => null));
+      let ort: any = options.ort ?? null;
+      if (!ort) {
+        let ortMod: any = null;
+        if (chosen === 'webgpu') {
+          ortMod = await import('onnxruntime-web/webgpu').catch(() => null);
+        } else {
+          // WebNN and WASM share the default entry; provider chosen via options
+          ortMod = await import('onnxruntime-web').catch(() => null);
+        }
+        ort = ortMod && (ortMod.default ?? ortMod);
       }
       if (!ort) {
-        // Fallback to global ORT if host app loaded it via <script>
-        const gOrt = (globalThis as any).ort;
-        if (gOrt) {
-          ort = gOrt;
-          // Fallback build usually provides WASM only; prefer WASM EP in that case
-          chosen = 'wasm';
-        } else {
-          console.warn('[sd-turbo] onnxruntime-web not found; load() will be a no-op.');
-        }
+        const gOrt = (globalThis as any).ort; // fallback if app added <script>
+        if (gOrt) ort = gOrt;
+      }
+      if (!ort) {
+        return { ok: false, reason: 'internal_error', message: 'onnxruntime-web not available. Install as a dependency or inject via loadModel({ ort }).' };
       }
       this.ort = ort as ORT;
     } catch (e) {
-      console.warn('[sd-turbo] Failed dynamic import of onnxruntime-web', e);
+      return { ok: false, reason: 'internal_error', message: `Failed to load onnxruntime-web: ${e instanceof Error ? e.message : String(e)}` };
     }
 
     // Placeholder for downloading model assets using Cache Storage
@@ -90,6 +94,12 @@ export class SDTurboAdapter implements Adapter {
       if (chosen === 'webgpu') {
         (opt as any).preferredOutputLocation = { last_hidden_state: 'gpu-buffer' };
       }
+      // Configure WASM env if provided, regardless of EP; ORT may still load WASM helpers
+      try {
+        if (options.wasmPaths) (ort as any).env.wasm.wasmPaths = options.wasmPaths;
+        if (typeof options.wasmNumThreads === 'number') (ort as any).env.wasm.numThreads = options.wasmNumThreads;
+        if (typeof options.wasmSimd === 'boolean') (ort as any).env.wasm.simd = options.wasmSimd;
+      } catch {}
 
       const models = {
         unet: {
@@ -132,7 +142,8 @@ export class SDTurboAdapter implements Adapter {
       this.loaded = true;
       return { ok: true, backendUsed: chosen, bytesDownloaded };
     } catch (e) {
-      return { ok: false, reason: 'internal_error', message: (e as Error).message };
+      console.error('[sd-turbo] load error', e);
+      return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
     }
   }
 
@@ -153,15 +164,26 @@ export class SDTurboAdapter implements Adapter {
     const ort = this.ort!;
 
     try {
-      // Tokenizer
+      // Tokenizer (injected or dynamic)
       onProgress?.({ phase: 'tokenizing', pct: 10 });
-      if (!this.tokenizer) this.tokenizer = await getTokenizer();
+      if (!this.tokenizerFn) {
+        if (this.tokenizerProvider) this.tokenizerFn = await this.tokenizerProvider();
+        else this.tokenizerFn = await getTokenizer();
+      }
       if (signal?.aborted) return { ok: false, reason: 'cancelled' };
-      const { input_ids } = await this.tokenizer(prompt, { padding: true, max_length: 77, truncation: true, return_tensor: false });
+      const tok = this.tokenizerFn!;
+      const { input_ids } = await tok(prompt, { padding: true, max_length: 77, truncation: true, return_tensor: false });
 
       // Text encoder
       onProgress?.({ phase: 'encoding', pct: 25 });
-      const { last_hidden_state } = await this.sessions.text_encoder!.run({ input_ids: new (ort as any).Tensor('int32', input_ids, [1, input_ids.length]) });
+      const ids = Int32Array.from(input_ids as number[]);
+      let encOut: any;
+      try {
+        encOut = await this.sessions.text_encoder!.run({ input_ids: new (ort as any).Tensor('int32', ids, [1, ids.length]) });
+      } catch (e) {
+        throw new Error(`text_encoder.run failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      const last_hidden_state = (encOut as any).last_hidden_state ?? encOut;
       if (signal?.aborted) return { ok: false, reason: 'cancelled' };
 
       // Latents
@@ -173,12 +195,20 @@ export class SDTurboAdapter implements Adapter {
 
       // UNet
       onProgress?.({ phase: 'denoising', pct: 70 });
+      const tstep = [BigInt(999)];
       const feed: Record<string, any> = {
         sample: latent_model_input,
-        timestep: new (ort as any).Tensor('int64', [BigInt(999)], [1]),
+        timestep: new (ort as any).Tensor('int64', tstep as any, [1]),
         encoder_hidden_states: last_hidden_state,
       };
-      const { out_sample } = await this.sessions.unet!.run(feed);
+      let out_sample: any;
+      try {
+        out_sample = await this.sessions.unet!.run(feed);
+        // Some builds return object with key out_sample; others return first output value
+        out_sample = (out_sample as any).out_sample ?? out_sample;
+      } catch (e) {
+        throw new Error(`unet.run failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
       if (typeof (last_hidden_state as any).dispose === 'function') (last_hidden_state as any).dispose();
 
       // Scheduler step
@@ -186,14 +216,21 @@ export class SDTurboAdapter implements Adapter {
 
       // VAE decode
       onProgress?.({ phase: 'decoding', pct: 95 });
-      const { sample } = await this.sessions.vae_decoder!.run({ latent_sample: new_latents });
+      let vaeOut: any;
+      try {
+        vaeOut = await this.sessions.vae_decoder!.run({ latent_sample: new_latents });
+      } catch (e) {
+        throw new Error(`vae_decoder.run failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      const sample = (vaeOut as any).sample ?? vaeOut;
 
       const blob = await tensorToPngBlob(sample);
       const timeMs = performance.now() - start;
       onProgress?.({ phase: 'complete', pct: 100, timeMs });
       return { ok: true, blob, timeMs };
     } catch (e) {
-      return { ok: false, reason: 'internal_error', message: (e as Error).message };
+      console.error('[sd-turbo] generate error', e);
+      return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
     }
   }
 
@@ -301,10 +338,20 @@ async function getTokenizer(): Promise<any> {
     _tokInstance.pad_token_id = 0;
     return (text: string, opts: any) => _tokInstance(text, opts);
   }
-  const mod = await import('@xenova/transformers');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const AutoTokenizer: any = (mod as any).AutoTokenizer;
-  _tokInstance = await AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
+  let AutoTokenizerMod: any = null;
+  try {
+    const mod = await import('@xenova/transformers');
+    AutoTokenizerMod = (mod as any).AutoTokenizer;
+  } catch {
+    try {
+      const spec = '@huggingface/transformers';
+      const mod2 = await import(/* @vite-ignore */ spec);
+      AutoTokenizerMod = (mod2 as any).AutoTokenizer;
+    } catch {
+      throw new Error('Failed to load a tokenizer. Install @xenova/transformers or provide tokenizerProvider in loadModel options.');
+    }
+  }
+  _tokInstance = await AutoTokenizerMod.from_pretrained('Xenova/clip-vit-base-patch16');
   _tokInstance.pad_token_id = 0;
   return (text: string, opts: any) => _tokInstance(text, opts);
 }

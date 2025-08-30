@@ -30,6 +30,13 @@ export interface LoadOptions {
   backendPreference?: BackendId[];
   modelUrlOverrides?: Record<string, string>;
   onProgress?: (p: LoadProgress) => void;
+  // Runtime dependency injection & configuration (robust, no CDN needed)
+  ort?: unknown; // onnxruntime-web module instance (e.g., import('onnxruntime-web/webgpu'))
+  tokenizerProvider?: () => Promise<(text: string, opts?: any) => Promise<{ input_ids: number[] }>>;
+  wasmPaths?: string; // path to onnxruntime-web WASM assets
+  wasmNumThreads?: number;
+  wasmSimd?: boolean;
+  modelBaseUrl?: string; // override default HF base for SD‑Turbo models
 }
 
 export interface LoadProgress {
@@ -86,4 +93,3 @@ export interface Adapter {
 export interface RegistryEntry extends ModelInfo {
   createAdapter(): Adapter;
 }
-

@@ -25,8 +25,10 @@ export class JanusProAdapter implements Adapter {
     }
     // Lazy import transformers.js components when app bundles them
     try {
+      // Avoid forcing bundlers to resolve an optional peer dependency
+      const spec = '@huggingface/transformers';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tfjs: any = await import('@huggingface/transformers').catch(() => null);
+      const tfjs: any = await import(/* @vite-ignore */ spec).catch(() => null);
       if (!tfjs) {
         console.warn('[janus-pro] @huggingface/transformers not found; load() will be a no-op.');
       }
@@ -89,4 +91,3 @@ async function renderInfoImage(text: string): Promise<Blob> {
     return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
   }
 }
-

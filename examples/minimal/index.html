@@ -28,15 +28,17 @@
       <button id="unload">Unload</button>
       <button id="purge">Purge Cache</button>
     </div>
+    <div id="progress-wrap">
+      <div id="progress-line">Idle</div>
+      <progress id="progress-bar" max="100" value="0" style="width: 420px;"></progress>
+    </div>
     <p>Capabilities: <span id="caps"></span></p>
     <div id="log"></div>
     <p><img id="out" /></p>
-    <!-- Optional: provide ORT and Tokenizer via CDN for direct browser usage -->
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-    <script type="module">
-      import { AutoTokenizer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js';
-      window.AutoTokenizer = AutoTokenizer;
-    </script>
+    <style>
+      #progress-wrap { display: flex; gap: 12px; align-items: center; margin: 10px 0; }
+      #progress-line { min-width: 260px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    </style>
     <script type="module" src="./main.js"></script>
   </body>
   </html>
