@@ -27,6 +27,19 @@ Notes
   - Adjust wasmNumThreads/wasmSimd in the example (see main.js).
 - You can also inject your own ort/tokenizer via loadModel options if desired.
 
+Janus-Pro-1B (Transformers.js)
+
+- Requirements:
+  - WebGPU-capable browser/GPU (no WASM fallback).
+  - Install Transformers.js: npm i @huggingface/transformers
+- Usage in this example:
+  - Select "Janus-Pro-1B (Transformers.js)" in the model dropdown.
+  - Click Load (uses WebGPU only; no wasmPaths needed).
+  - Click Generate; the progress line will show image token streaming.
+- Notes:
+  - Seed/size controls are not supported for Janus in v1.
+  - Purging model cache only affects SD‑Turbo assets; Transformers.js manages its own caches.
+
 Automation (optional)
 
 - You can keep asset copy automated via npm scripts if you prefer:

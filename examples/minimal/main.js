@@ -33,14 +33,16 @@ async function init() {
   $('load').onclick = async () => {
     const model = sel.value;
     log(`Loading: ${model}`);
-    const wasmPaths = import.meta.env && import.meta.env.DEV
+    // Configure backends and assets per model
+    const isJanus = model === 'janus-pro-1b';
+    const wasmPaths = isJanus ? undefined : (import.meta.env && import.meta.env.DEV
       ? '/node_modules/onnxruntime-web/dist/'
-      : '/ort/';
+      : '/ort/');
     const res = await loadModel(model, {
-      backendPreference: ['webgpu', 'wasm'],
-      wasmPaths,
-      wasmNumThreads: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2,
-      wasmSimd: true,
+      backendPreference: isJanus ? ['webgpu'] : ['webgpu', 'wasm'],
+      ...(wasmPaths ? { wasmPaths } : {}),
+      ...(wasmPaths ? { wasmNumThreads: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2 } : {}),
+      ...(wasmPaths ? { wasmSimd: true } : {}),
       onProgress: (p) => setProgress(p),
     });
     log(`Load result: ${JSON.stringify(res)}`);
@@ -60,7 +62,8 @@ async function init() {
       seed,
       onProgress: (e) => {
         const name = typeof e.phase === 'string' ? e.phase : 'working';
-        setProgress({ message: `generate: ${name}`, pct: e.pct ?? undefined });
+        const pct = e.pct != null ? e.pct : (typeof e.progress === 'number' ? Math.round(e.progress * 100) : undefined);
+        setProgress({ message: `generate: ${name}` + (e.count != null && e.total != null ? ` (${e.count}/${e.total})` : ''), pct });
       },
     });
     if (res.ok) {

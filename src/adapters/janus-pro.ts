@@ -9,10 +9,17 @@ import type {
 } from '../types.js';
 import { purgeModelCache } from '../cache.js';
 
+type HF = typeof import('@huggingface/transformers');
+
 export class JanusProAdapter implements Adapter {
   readonly id = 'janus-pro-1b' as const;
   private loaded = false;
   private backendUsed: BackendId | null = null;
+
+  // Cached handles to reuse between calls
+  private hf: HF | null = null;
+  private processor: any | null = null;
+  private model: any | null = null;
 
   checkSupport(c: Capabilities): BackendId[] {
     return c.webgpu ? ['webgpu'] : [];
@@ -23,22 +30,76 @@ export class JanusProAdapter implements Adapter {
     if (!preferred.includes('webgpu')) {
       return { ok: false, reason: 'backend_unavailable', message: 'Janus requires WebGPU' };
     }
-    // Lazy import transformers.js components when app bundles them
-    try {
-      // Avoid forcing bundlers to resolve an optional peer dependency
-      const spec = '@huggingface/transformers';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tfjs: any = await import(/* @vite-ignore */ spec).catch(() => null);
-      if (!tfjs) {
-        console.warn('[janus-pro] @huggingface/transformers not found; load() will be a no-op.');
-      }
-    } catch (e) {
-      console.warn('[janus-pro] Failed dynamic import of @huggingface/transformers', e);
+
+    // Dynamic import of Transformers.js (optional peer). Error clearly if missing.
+    let hf: any = null;
+    // First try a normal bare-specifier import (works when installed and bundled by Vite)
+    try { hf = await import('@huggingface/transformers').catch(() => null); } catch {}
+    // Try to resolve via bundler if available (Vite: import.meta.resolve)
+    if (!hf) {
+      try {
+        const anyMeta: any = import.meta as any;
+        const resolved = anyMeta && typeof anyMeta.resolve === 'function'
+          ? anyMeta.resolve('@huggingface/transformers')
+          : null;
+        if (resolved) {
+          hf = await import(/* @vite-ignore */ resolved).catch(() => null);
+        }
+      } catch {}
     }
-    options.onProgress?.({ phase: 'loading', message: 'Preparing Janus-Pro-1B model...' });
-    this.backendUsed = 'webgpu';
-    this.loaded = true;
-    return { ok: true, backendUsed: 'webgpu' };
+    // Fallback to a global (if the app loaded Transformers.js via a <script> tag)
+    if (!hf) {
+      const g: any = globalThis as any;
+      hf = g.transformers || g.HFTransformers || g.HuggingFaceTransformers || null;
+    }
+    if (!hf) {
+      return { ok: false, reason: 'internal_error', message: 'Missing @huggingface/transformers. Install it (npm i @huggingface/transformers) or include it via a <script> to expose global "transformers".' };
+    }
+
+    // WebGPU adapter + shader-f16 capability check (for dtype selection)
+    let fp16_supported = false;
+    try {
+      const adapter = await (navigator as any).gpu?.requestAdapter?.();
+      fp16_supported = !!adapter?.features?.has?.('shader-f16');
+    } catch {}
+
+    const model_id = 'onnx-community/Janus-Pro-1B-ONNX';
+    options.onProgress?.({ phase: 'loading', message: 'Loading Janus-Pro-1B processor…' });
+
+    try {
+      const progress_callback = (x: any) => {
+        // x may contain {status, ...} or bytes, shape varies — forward minimal info
+        options.onProgress?.({ phase: 'loading', message: x?.status ?? 'loading…' });
+      };
+
+      const processorP = (hf as HF).AutoProcessor.from_pretrained(model_id, { progress_callback });
+      const dtype = fp16_supported
+        ? { prepare_inputs_embeds: 'q4', language_model: 'q4f16', lm_head: 'fp16', gen_head: 'fp16', gen_img_embeds: 'fp16', image_decode: 'fp32' }
+        : { prepare_inputs_embeds: 'fp32', language_model: 'q4',   lm_head: 'fp32', gen_head: 'fp32', gen_img_embeds: 'fp32', image_decode: 'fp32' };
+      const device = {
+        // TODO: use 'webgpu' when upstream bug fixed; match example using wasm for this small stage
+        prepare_inputs_embeds: 'wasm',
+        language_model: 'webgpu',
+        lm_head: 'webgpu',
+        gen_head: 'webgpu',
+        gen_img_embeds: 'webgpu',
+        image_decode: 'webgpu',
+      } as const;
+
+      options.onProgress?.({ phase: 'loading', message: 'Loading Janus-Pro-1B model…' });
+      const modelP = (hf as HF).MultiModalityCausalLM.from_pretrained(model_id, { dtype, device, progress_callback });
+
+      const [processor, model] = await Promise.all([processorP, modelP]);
+
+      this.hf = hf as HF;
+      this.processor = processor;
+      this.model = model;
+      this.backendUsed = 'webgpu';
+      this.loaded = true;
+      return { ok: true, backendUsed: 'webgpu' };
+    } catch (e) {
+      return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   isLoaded(): boolean {
@@ -46,23 +107,66 @@ export class JanusProAdapter implements Adapter {
   }
 
   async generate(params: Omit<GenerateParams, 'model'>): Promise<GenerateResult> {
-    if (!this.loaded) return { ok: false, reason: 'model_not_loaded', message: 'Call loadModel() first' };
+    if (!this.loaded || !this.processor || !this.model) {
+      return { ok: false, reason: 'model_not_loaded', message: 'Call loadModel() first' };
+    }
     const { prompt, signal, onProgress } = params;
     if (!prompt || !prompt.trim()) return { ok: false, reason: 'unsupported_option', message: 'Prompt is required' };
-
-    // Placeholder implementation: indicate unsupported streaming and return an informative image blob.
-    onProgress?.({ phase: 'image_tokens', count: 0, total: 0, progress: 0 });
     if (signal?.aborted) return { ok: false, reason: 'cancelled' };
+
     const start = performance.now();
-    const blob = await renderInfoImage('Janus-Pro placeholder\nStreaming not implemented yet');
-    const timeMs = performance.now() - start;
-    onProgress?.({ phase: 'complete', pct: 100, timeMs });
-    return { ok: true, blob, timeMs };
+
+    try {
+      // Build conversation with text_to_image template
+      const conversation = [
+        { role: '<|User|>', content: prompt.trim() },
+      ];
+      const inputs = await (this.processor as any)(conversation, { chat_template: 'text_to_image' });
+
+      // Progress streamer — mirrors example semantics
+      const num_image_tokens = (this.processor as any).num_image_tokens;
+      const thatOnProgress = onProgress;
+      const StreamerBase = (this.hf as HF).BaseStreamer as any;
+      class ProgressStreamer extends StreamerBase {
+        total: number; on_progress: (p: any) => void; count: number | null; start_time: number | null;
+        constructor(total: number, on_progress: (p: any) => void) { super(); this.total = total; this.on_progress = on_progress; this.count = null; this.start_time = null; }
+        put(_value: any) {
+          if (this.count === null) { this.count = 0; this.start_time = performance.now(); return; }
+          const progress = (++this.count) / this.total;
+          this.on_progress({ count: this.count, total: this.total, progress, time: performance.now() - (this.start_time ?? performance.now()) });
+        }
+        end() { /* no-op */ }
+      }
+
+      const streamer = new (ProgressStreamer as any)(num_image_tokens, (out: any) => {
+        thatOnProgress?.({ phase: 'image_tokens', ...out });
+      });
+
+      // Note: No supported interruption API for image generation; we check abort before starting.
+      const outputs = await (this.model as any).generate_images({
+        ...inputs,
+        min_new_tokens: num_image_tokens,
+        max_new_tokens: num_image_tokens,
+        do_sample: true,
+        streamer,
+      });
+
+      const blob = await outputs[0].toBlob();
+      const timeMs = performance.now() - start;
+      onProgress?.({ phase: 'complete', pct: 100, timeMs });
+      return { ok: true, blob, timeMs };
+    } catch (e) {
+      return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
+    }
   }
 
   async unload(): Promise<void> {
+    // Drop references to allow GC of GPU buffers
     this.loaded = false;
     this.backendUsed = null;
+    this.model = null;
+    this.processor = null;
+    this.hf = null;
   }
 
   async purgeCache(): Promise<void> {
@@ -86,7 +190,7 @@ async function renderInfoImage(text: string): Promise<Blob> {
   const lines = text.split(/\n/);
   lines.forEach((line, i) => ctx.fillText(line, 12, 28 + i * 24));
   if (canvas instanceof HTMLCanvasElement) {
-    return await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/png'));
+    return await new Promise<Blob>((resolve) => (canvas as HTMLCanvasElement).toBlob((b) => resolve(b!), 'image/png'));
   } else {
     return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
   }

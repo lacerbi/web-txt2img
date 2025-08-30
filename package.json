@@ -15,6 +15,7 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.7.1",
     "onnxruntime-web": "^1.18.0",
     "@xenova/transformers": "latest"
   },
