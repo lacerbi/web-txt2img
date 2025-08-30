@@ -1,0 +1,383 @@
+###############################################################################
+# ATHIGNORE - Athanor Ignore Rules
+#
+# Files and folders listed in this file will be hidden from the Athanor file
+# explorer and excluded from AI contexts. This file uses the same syntax as 
+# .gitignore (see https://git-scm.com/docs/gitignore).
+#
+# HOW IT WORKS WITH .gitignore: By default, Athanor automatically processes rules 
+# from your project's .gitignore file. This .athignore file is for Athanor-specific 
+# rules or for overriding .gitignore rules.
+#
+# To re-include a file that is ignored by .gitignore, you can add an exception 
+# rule here (e.g., !path/to/file).
+#
+# If you wish to disable the automatic use of .gitignore for this project,
+# you can do so in the project settings.
+###############################################################################
+
+###############################################################################
+# GIT SYSTEM FILES
+###############################################################################
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+git-log.txt
+git-reflog.txt
+git-status.txt
+
+###############################################################################
+# OPERATING SYSTEM / FILE EXPLORER FILES
+###############################################################################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+###############################################################################
+# EDITOR / IDE / TOOL FILES
+###############################################################################
+# Vim
+*.swp
+*.swo
+*.swn
+*.swm
+*.un~
+*.o
+.session
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.#*
+
+# Visual Studio Code
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+*.code-workspace
+
+# JetBrains (IntelliJ, PyCharm, etc.)
+.idea/
+.idea_modules/
+*.iml
+*.ipr
+*.iws
+# 'out/' is also ignored below in Build Artifacts
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+.classpath
+.project
+*.launch
+
+###############################################################################
+# BUILD ARTIFACTS
+###############################################################################
+# Common build / distribution directories
+bin/
+build/
+dist/
+forge/
+out/
+target/
+release/
+deploy/
+Debug/
+Release/
+x64/
+x86/
+.mtj.tmp/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+Carthage/Build/
+.webpack/
+
+# Common packaging / compression formats
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.gz
+*.iso
+
+###############################################################################
+# DEPENDENCIES
+###############################################################################
+# Node.js
+node_modules/
+.npm/
+.yarn/
+.yarn-integrity
+.pnp.*
+/bower_components/
+/jspm_packages/
+/.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.python-version
+env/
+ENV/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+# Some coverage-related files also appear below in "Coverage Reports"
+
+# Ruby
+.bundle/
+vendor/bundle/
+*.gem
+*.rbc
+/.config
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+.byebug_history
+.dat*
+.repl_history
+*.bridgesupport
+build-iPhoneOS/
+build-iPhoneSimulator/
+.lib/bundler/man/
+.rvmrc
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# PHP (Composer)
+vendor/
+composer.phar
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.dylib
+*.test
+*.out
+go.work
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+###############################################################################
+# LOG / TEMPORARY / RUNTIME FILES
+###############################################################################
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+*.log
+*.log.*
+debug.log
+error.log
+logs/
+
+# Temporary files (caches, partial downloads, etc.)
+*.tmp
+*.temp
+.tmp/
+.temp/
+tmp/
+temp/
+.cache/
+.cache-loader/
+.sass-cache/
+*.cache
+.eslintcache
+.stylelintcache
+*.pid
+
+###############################################################################
+# ENVIRONMENT / CONFIG FILES
+###############################################################################
+# Sensitive or environment-specific config files (often contain credentials/keys)
+.env
+.env.*
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+*.local
+*.secret
+.secret
+!.env.example
+.credentials
+secrets.yml
+secrets.json
+
+# Security-related files
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+
+###############################################################################
+# OTHER COMMON IGNORABLE FILES
+###############################################################################
+# Databases / data files
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.sql
+*.bak
+
+# Coverage reports
+coverage/
+*.lcov
+*.clover
+.nyc_output
+coverage.xml
+nosetests.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.cypress
+cypress/videos/
+cypress/screenshots/
+
+# Python notebook checkpoints
+.ipynb_checkpoints/
+
+# Documentation
+docs/_site/
+#docs/api/ # This might be useful
+
+# Media and generated documents (use with caution — you might not always want these ignored)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.webp
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+###############################################################################
+# ATHANOR PROJECT FILES
+###############################################################################
+# Athanor materials folder is visible (as a separate node in the file manager)
+!/.ath_materials/**/*
+
+# Athanor configuration files are hidden
+/.ath_materials/project_graph.json
+/.ath_materials/project_settings.json
+
+# Put other files or folders below
+###############################################################################
+# PROJECT FILES
+# Add below specific files and folders you want to ignore.
+###############################################################################
