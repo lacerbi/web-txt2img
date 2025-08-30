@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>web-txt2img — Minimal Example</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 20px; }
+      #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 8px; border-radius: 6px; max-height: 200px; overflow: auto; }
+      img { max-width: 100%; height: auto; border: 1px solid #ddd; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>web-txt2img — Minimal Example</h1>
+    <div class="row">
+      <label>Model:
+        <select id="model"></select>
+      </label>
+      <label>Prompt:
+        <input id="prompt" size="50" placeholder="A cute robot sketch, line art" />
+      </label>
+      <label>Seed (SD-Turbo only):
+        <input id="seed" type="number" />
+      </label>
+      <button id="load">Load</button>
+      <button id="gen">Generate</button>
+      <button id="unload">Unload</button>
+      <button id="purge">Purge Cache</button>
+    </div>
+    <p>Capabilities: <span id="caps"></span></p>
+    <div id="log"></div>
+    <p><img id="out" /></p>
+    <!-- Optional: provide ORT and Tokenizer via CDN for direct browser usage -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script type="module">
+      import { AutoTokenizer } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers/dist/transformers.min.js';
+      window.AutoTokenizer = AutoTokenizer;
+    </script>
+    <script type="module" src="./main.js"></script>
+  </body>
+  </html>

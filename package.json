@@ -1,0 +1,16 @@
+{
+  "name": "web-txt2img",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Browser-only text-to-image generation library (scaffold)",
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "clean": "rm -rf dist",
+    "dev": "echo 'Open examples/minimal/index.html. Prebuilt dist/ is included.'"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
