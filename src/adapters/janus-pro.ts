@@ -131,6 +131,10 @@ export class JanusProAdapter implements Adapter {
         total: number; on_progress: (p: any) => void; count: number | null; start_time: number | null;
         constructor(total: number, on_progress: (p: any) => void) { super(); this.total = total; this.on_progress = on_progress; this.count = null; this.start_time = null; }
         put(_value: any) {
+          // Best-effort mid-run abort: throw sentinel to unwind generate_images
+          if (signal?.aborted) {
+            throw new Error('JANUS_STOP');
+          }
           if (this.count === null) { this.count = 0; this.start_time = performance.now(); return; }
           const progress = (++this.count) / this.total;
           this.on_progress({ count: this.count, total: this.total, progress, time: performance.now() - (this.start_time ?? performance.now()) });
@@ -156,6 +160,10 @@ export class JanusProAdapter implements Adapter {
       onProgress?.({ phase: 'complete', pct: 100, timeMs });
       return { ok: true, blob, timeMs };
     } catch (e) {
+      if (e instanceof Error && e.message === 'JANUS_STOP') {
+        onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 });
+        return { ok: false, reason: 'cancelled' };
+      }
       return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
     }
   }

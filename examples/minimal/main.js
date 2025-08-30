@@ -20,6 +20,9 @@ const setProgress = (p) => {
   if (p?.pct != null) bar.value = p.pct; else bar.removeAttribute('value');
 };
 
+let currentController = null;
+let generating = false;
+
 async function init() {
   const caps = await detectCapabilities();
   $('caps').textContent = JSON.stringify(caps);
@@ -50,22 +53,30 @@ async function init() {
   };
 
   $('gen').onclick = async () => {
+    if (generating) { log('Already generating…'); return; }
     const model = sel.value;
     if (!isModelLoaded(model)) { log('Model not loaded'); return; }
     const prompt = $('prompt').value || 'Hello from web-txt2img';
     const seedVal = $('seed').value;
     const seed = seedVal === '' ? undefined : Number(seedVal);
     log(`Generating with prompt: ${prompt}`);
+    generating = true;
+    $('abort').disabled = false;
+    currentController = new AbortController();
     const res = await generateImage({
       model,
       prompt,
       seed,
+      signal: currentController.signal,
       onProgress: (e) => {
         const name = typeof e.phase === 'string' ? e.phase : 'working';
         const pct = e.pct != null ? e.pct : (typeof e.progress === 'number' ? Math.round(e.progress * 100) : undefined);
         setProgress({ message: `generate: ${name}` + (e.count != null && e.total != null ? ` (${e.count}/${e.total})` : ''), pct });
       },
     });
+    generating = false;
+    $('abort').disabled = true;
+    currentController = null;
     if (res.ok) {
       $('out').src = URL.createObjectURL(res.blob);
       log(`Done in ${Math.round(res.timeMs)}ms`);
@@ -81,6 +92,14 @@ async function init() {
   };
   $('purge').onclick = async () => {
     const model = sel.value; await purgeModelCache(model); log('Purged cache for model'); setProgress({ message: 'Cache cleared', pct: 0, bytesDownloaded: 0 });
+  };
+
+  $('abort').onclick = () => {
+    if (!generating || !currentController) { log('Nothing to abort'); return; }
+    const model = sel.value;
+    const isJanus = model === 'janus-pro-1b';
+    log(`Abort requested${isJanus ? ' (Janus: best-effort mid-run)' : ''}`);
+    currentController.abort();
   };
 }
 

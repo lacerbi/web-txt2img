@@ -173,6 +173,8 @@ await loadModel('sd-turbo', { modelBaseUrl: 'https://your.cdn/sd-turbo' });
 ## Janus‑Pro‑1B Status
 
 - Adapter is included but image generation is experimental in this repo. It is WebGPU‑only. If you need Janus now, integrate directly with Transformers.js or track updates here.
+- Abort: mid‑run cancellation is best‑effort; abort is guaranteed only before generation starts.
+- Purge: `purgeModelCache('janus-pro-1b')` clears only this library’s Cache Storage entries, not Transformers.js internal caches.
 
 ## Troubleshooting
 

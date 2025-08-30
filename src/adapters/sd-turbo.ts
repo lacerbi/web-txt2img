@@ -235,8 +235,17 @@ export class SDTurboAdapter implements Adapter {
   }
 
   async unload(): Promise<void> {
-    this.loaded = false;
-    this.backendUsed = null;
+    try {
+      // Dispose ORT sessions if available and clear references
+      try { (this.sessions.unet as any)?.release?.(); } catch {}
+      try { (this.sessions.text_encoder as any)?.release?.(); } catch {}
+      try { (this.sessions.vae_decoder as any)?.release?.(); } catch {}
+    } finally {
+      this.sessions = {};
+      this.ort = null;
+      this.loaded = false;
+      this.backendUsed = null;
+    }
   }
 
   async purgeCache(): Promise<void> {

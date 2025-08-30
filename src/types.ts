@@ -28,7 +28,6 @@ export interface ModelInfo {
 
 export interface LoadOptions {
   backendPreference?: BackendId[];
-  modelUrlOverrides?: Record<string, string>;
   onProgress?: (p: LoadProgress) => void;
   // Runtime dependency injection & configuration (robust, no CDN needed)
   ort?: unknown; // onnxruntime-web module instance (e.g., import('onnxruntime-web/webgpu'))
@@ -54,8 +53,8 @@ export interface GenerateParams {
   model: ModelId;
   prompt: string;
   seed?: number; // supported for SD-Turbo only
-  width?: number; // multiples of 64 for SD-Turbo
-  height?: number; // multiples of 64 for SD-Turbo
+  width?: number; // SD-Turbo: 512 only in v1
+  height?: number; // SD-Turbo: 512 only in v1
   signal?: AbortSignal;
   onProgress?: (event: GenerationProgressEvent) => void;
 }

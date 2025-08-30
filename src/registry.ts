@@ -8,7 +8,7 @@ const REGISTRY: RegistryEntry[] = [
     displayName: 'SD-Turbo (ONNX Runtime Web)',
     task: 'text-to-image',
     supportedBackends: ['webgpu', 'webnn', 'wasm'],
-    notes: 'Seeded generation supported; sizes in multiples of 64.',
+    notes: '512×512 only in v1; seed supported.',
     createAdapter: () => new SDTurboAdapter(),
   },
   {
@@ -46,4 +46,3 @@ export function defaultBackendPreferenceFor(id: ModelId): BackendId[] {
       return ['webgpu'];
   }
 }
-

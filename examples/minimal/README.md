@@ -36,6 +36,7 @@ Janus-Pro-1B (Transformers.js)
   - Select "Janus-Pro-1B (Transformers.js)" in the model dropdown.
   - Click Load (uses WebGPU only; no wasmPaths needed).
   - Click Generate; the progress line will show image token streaming.
+  - Abort: best-effort mid-run; if not immediate, it will take effect before the next run.
 - Notes:
   - Seed/size controls are not supported for Janus in v1.
   - Purging model cache only affects SD‑Turbo assets; Transformers.js manages its own caches.

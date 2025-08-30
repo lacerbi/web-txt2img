@@ -214,7 +214,6 @@ Retrieves a single entry from the registry.
 Options may include:
 
 - `backendPreference?: BackendId[]` (ordering)
-- `modelUrlOverrides?: { ... }` (expert: pin alternative hosting)
 - `onProgress?: (p: LoadProgress) => void`
 
 Return:
@@ -242,8 +241,8 @@ Parameters:
 - `model: ModelId`
 - `prompt: string`
 - `seed?: number` _(supported for SD-Turbo; ignored/unsupported for Janus)_
-- `width?: number` _(multiples of 64 for SD-Turbo; ignored for Janus unless adapter supports it)_
-- `height?: number` _(same as above)_
+ - `width?: number` _(SD-Turbo: 512 only in v1; ignored for Janus)_
+ - `height?: number` _(SD-Turbo: 512 only in v1; ignored for Janus)_
 - `signal?: AbortSignal`
 - `onProgress?: (event: GenerationProgressEvent) => void`
 
@@ -322,7 +321,7 @@ Return:
 **Parameters:**
 
 - **Seed**: Supported — deterministic across runs for identical prompt/size/backend/impl version.
-- **Width/Height**: Multiples of 64 (latent 64×64 corresponds to 512×512 output). If unspecified, default to 512×512. Validate and return `"unsupported_option"` if invalid.
+ - **Width/Height**: 512×512 only in v1. Other sizes are rejected with `"unsupported_option"`. Wider support may come later.
 - **Negative prompt**: Not supported in v1; reject or ignore consistently.
 
 **Abort:**
@@ -434,7 +433,7 @@ Return:
 
 **SD-Turbo-specific:**
 
-- Allow only widths/heights that are **multiples of 64**.
+- Allow only **512×512** in v1.
 - Default to **512×512** for throughput/quality balance.
 - Tune ORT session options based on backend:
 
