@@ -170,7 +170,7 @@ export class SDTurboAdapter implements Adapter {
         if (this.tokenizerProvider) this.tokenizerFn = await this.tokenizerProvider();
         else this.tokenizerFn = await getTokenizer();
       }
-      if (signal?.aborted) return { ok: false, reason: 'cancelled' };
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
       const tok = this.tokenizerFn!;
       const { input_ids } = await tok(prompt, { padding: true, max_length: 77, truncation: true, return_tensor: false });
 
@@ -184,7 +184,7 @@ export class SDTurboAdapter implements Adapter {
         throw new Error(`text_encoder.run failed: ${e instanceof Error ? e.message : String(e)}`);
       }
       const last_hidden_state = (encOut as any).last_hidden_state ?? encOut;
-      if (signal?.aborted) return { ok: false, reason: 'cancelled' };
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
 
       // Latents
       const latent_shape = [1, 4, 64, 64];
@@ -195,6 +195,7 @@ export class SDTurboAdapter implements Adapter {
 
       // UNet
       onProgress?.({ phase: 'denoising', pct: 70 });
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
       const tstep = [BigInt(999)];
       const feed: Record<string, any> = {
         sample: latent_model_input,
@@ -210,12 +211,14 @@ export class SDTurboAdapter implements Adapter {
         throw new Error(`unet.run failed: ${e instanceof Error ? e.message : String(e)}`);
       }
       if (typeof (last_hidden_state as any).dispose === 'function') (last_hidden_state as any).dispose();
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
 
       // Scheduler step
       const new_latents = step(ort as any, out_sample, latent, sigma, vae_scaling_factor);
 
       // VAE decode
       onProgress?.({ phase: 'decoding', pct: 95 });
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
       let vaeOut: any;
       try {
         vaeOut = await this.sessions.vae_decoder!.run({ latent_sample: new_latents });
@@ -224,6 +227,7 @@ export class SDTurboAdapter implements Adapter {
       }
       const sample = (vaeOut as any).sample ?? vaeOut;
 
+      if (signal?.aborted) { onProgress?.({ phase: 'complete', aborted: true as any, pct: 0 }); return { ok: false, reason: 'cancelled' }; }
       const blob = await tensorToPngBlob(sample);
       const timeMs = performance.now() - start;
       onProgress?.({ phase: 'complete', pct: 100, timeMs });

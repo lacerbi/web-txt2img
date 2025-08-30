@@ -26,6 +26,9 @@ Notes
   - Serve with COOP/COEP headers (cross‑origin isolated) to unlock threads.
   - Adjust wasmNumThreads/wasmSimd in the example (see main.js).
 - You can also inject your own ort/tokenizer via loadModel options if desired.
+ - Abort behavior:
+   - SD‑Turbo: phase‑boundary abort (takes effect between tokenizing/encoding/denoising/decoding phases).
+   - Janus: best‑effort mid‑run abort via streamer; may delay until next safe point.
 
 Janus-Pro-1B (Transformers.js)
 
