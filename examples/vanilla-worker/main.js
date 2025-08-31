@@ -4,22 +4,38 @@ import { Txt2ImgWorkerClient } from 'web-txt2img';
 import WorkerUrl from '../../packages/web-txt2img/src/worker/host.ts?worker&url';
 
 const $ = (id) => document.getElementById(id);
-const log = (m) => { const el = $('log'); el.textContent += `${m}\n`; el.scrollTop = el.scrollHeight; };
+const log = (m) => { 
+  const el = $('log'); 
+  const timestamp = new Date().toLocaleTimeString();
+  el.textContent += `[${timestamp}] ${m}\n`; 
+  el.scrollTop = el.scrollHeight; 
+};
 const setProgress = (p) => {
   const line = $('progress-line');
   const bar = $('progress-bar');
   if (!line || !bar) return;
-  const pct = p?.pct != null ? `${p.pct}%` : '';
+  
+  const pct = p?.pct != null ? ` • ${p.pct}%` : '';
   let sizeStr = '';
   if (p?.bytesDownloaded != null && p?.totalBytesExpected != null) {
     const cur = (p.bytesDownloaded/1024/1024).toFixed(1);
     const tot = (p.totalBytesExpected/1024/1024).toFixed(1);
-    sizeStr = ` ${cur}/${tot}MB`;
+    sizeStr = ` • ${cur}/${tot}MB`;
   } else if (p?.bytesDownloaded != null) {
-    sizeStr = ` ${(p.bytesDownloaded/1024/1024).toFixed(1)}MB`;
+    sizeStr = ` • ${(p.bytesDownloaded/1024/1024).toFixed(1)}MB`;
   }
-  line.textContent = `${p?.message ?? ''}${pct}${sizeStr}`.trim();
-  if (p?.pct != null) bar.value = p.pct; else bar.removeAttribute('value');
+  
+  line.textContent = `${p?.message ?? 'Ready'}${pct}${sizeStr}`.trim();
+  
+  if (p?.pct != null) {
+    bar.style.width = `${p.pct}%`;
+    bar.classList.remove('indeterminate');
+  } else if (p?.message && p.message !== 'Ready' && p.message !== 'Image ready') {
+    bar.classList.add('indeterminate');
+  } else {
+    bar.style.width = '0%';
+    bar.classList.remove('indeterminate');
+  }
 };
 
 let client = null;
@@ -29,10 +45,15 @@ let loadedDetails = new Map(); // modelId -> { backendUsed, bytesDownloaded? }
 let currentAbort = null;
 
 async function init() {
+  log('System initialized...');
   const worker = new Worker(WorkerUrl, { type: 'module' });
   client = new Txt2ImgWorkerClient(worker);
   const caps = await client.detect();
-  $('caps').textContent = JSON.stringify(caps);
+  const capsText = Object.entries(caps)
+    .filter(([k, v]) => v)
+    .map(([k]) => k)
+    .join(', ') || 'none';
+  $('caps').textContent = capsText;
   const models = await client.listModels();
   const modelsById = new Map(models.map((m) => [m.id, m]));
   const sel = $('model');
@@ -109,7 +130,11 @@ async function init() {
     $('abort').disabled = true;
     currentAbort = null;
     if (res?.ok) {
-      $('out').src = URL.createObjectURL(res.blob);
+      const img = $('out');
+      const placeholder = $('placeholder');
+      img.src = URL.createObjectURL(res.blob);
+      img.classList.add('show');
+      if (placeholder) placeholder.style.display = 'none';
       log(`Done in ${Math.round(res.timeMs)}ms`);
       setProgress({ message: 'Image ready', pct: 100 });
     } else {
