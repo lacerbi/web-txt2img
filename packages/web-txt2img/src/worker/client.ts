@@ -1,5 +1,5 @@
 import type { BackendId, GenerateResult, LoadOptions, ModelId } from '../types.js';
-import type { WorkerBusyPolicy, WorkerRequest, WorkerResponse } from './protocol.js';
+import type { WorkerBusyPolicy, WorkerRequest, WorkerResponse, WorkerGenerateParams } from './protocol.js';
 
 export type ProgressHandler = (e: any) => void;
 
@@ -84,11 +84,11 @@ export class Txt2ImgWorkerClient {
     return res.data ?? res; // return LoadResult in data, or whole msg if shaped differently
   }
 
-  async unload(model: ModelId): Promise<void> {
+  async unload(model?: ModelId): Promise<void> {
     await this.send({ id: uid(), kind: 'unload', model });
   }
 
-  async purge(model: ModelId): Promise<void> {
+  async purge(model?: ModelId): Promise<void> {
     await this.send({ id: uid(), kind: 'purge', model });
   }
 
@@ -97,7 +97,7 @@ export class Txt2ImgWorkerClient {
   }
 
   generate(
-    params: { model: ModelId; prompt: string; seed?: number; width?: number; height?: number },
+    params: WorkerGenerateParams,
     onProgress?: ProgressHandler,
     opts?: { busyPolicy?: WorkerBusyPolicy; replaceQueued?: boolean; debounceMs?: number },
   ): { id: string; promise: Promise<GenerateResult | any>; abort: () => Promise<void> } {

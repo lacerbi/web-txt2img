@@ -1,8 +1,18 @@
-import type { BackendId, GenerateParams, GenerationProgressEvent, LoadOptions, ModelId } from '../types.js';
+import type { BackendId, GenerationProgressEvent, LoadOptions, ModelId } from '../types.js';
 
 // Worker request/response protocol for web-txt2img
 
 export type WorkerBusyPolicy = 'reject' | 'abort_and_queue' | 'queue';
+
+// Worker-side generate params: model is optional since the worker
+// maintains a single loaded model at a time.
+export type WorkerGenerateParams = {
+  model?: ModelId;
+  prompt: string;
+  seed?: number;
+  width?: number;
+  height?: number;
+};
 
 // Requests → Worker
 export type WorkerRequest =
@@ -10,13 +20,13 @@ export type WorkerRequest =
   | { id: string; kind: 'listModels' }
   | { id: string; kind: 'listBackends' }
   | { id: string; kind: 'load'; model: ModelId; options?: LoadOptions }
-  | { id: string; kind: 'unload'; model: ModelId }
-  | { id: string; kind: 'purge'; model: ModelId }
+  | { id: string; kind: 'unload'; model?: ModelId }
+  | { id: string; kind: 'purge'; model?: ModelId }
   | { id: string; kind: 'purgeAll' }
   | {
       id: string;
       kind: 'generate';
-      params: Omit<GenerateParams, 'onProgress' | 'signal'>; // provide by worker
+      params: WorkerGenerateParams; // worker provides signal/onProgress; model optional
       busyPolicy?: WorkerBusyPolicy; // default 'queue'
       replaceQueued?: boolean; // default true
       debounceMs?: number; // default 0

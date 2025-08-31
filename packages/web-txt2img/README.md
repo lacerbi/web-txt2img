@@ -13,7 +13,7 @@ Quickstart
 import { Txt2ImgWorkerClient } from 'web-txt2img';
 const client = Txt2ImgWorkerClient.createDefault();
 await client.load('sd-turbo', { backendPreference: ['webgpu','wasm'], wasmPaths: '/ort/' });
-const { promise } = client.generate({ model: 'sd-turbo', prompt: 'a cozy cabin, watercolor', seed: 42 });
+const { promise } = client.generate({ prompt: 'a cozy cabin, watercolor', seed: 42 });
 const res = await promise;
 if (res.ok) document.querySelector('img').src = URL.createObjectURL(res.blob);
 ```
@@ -21,4 +21,3 @@ if (res.ok) document.querySelector('img').src = URL.createObjectURL(res.blob);
 Docs
 
 See the repository README and docs/DEVELOPER_GUIDE.md for full details.
-

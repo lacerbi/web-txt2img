@@ -57,7 +57,7 @@ async function init() {
     log(`Generating with prompt: ${prompt}`);
     generating = true;
     $('abort').disabled = false;
-    const { promise, abort } = client.generate({ model, prompt, seed }, (e) => {
+    const { promise, abort } = client.generate({ prompt, seed }, (e) => {
       const name = typeof e.phase === 'string' ? e.phase : 'working';
       const pct = e.pct != null ? e.pct : (typeof e.progress === 'number' ? Math.round(e.progress * 100) : undefined);
       setProgress({ message: `generate: ${name}` + (e.count != null && e.total != null ? ` (${e.count}/${e.total})` : ''), pct });
@@ -78,10 +78,10 @@ async function init() {
   };
 
   $('unload').onclick = async () => {
-    const model = sel.value; await client.unload(model); loadedModels.delete(model); log('Unloaded model');
+    const model = sel.value; await client.unload(); loadedModels.delete(model); log('Unloaded model');
   };
   $('purge').onclick = async () => {
-    const model = sel.value; await client.purge(model); log('Purged cache for model'); setProgress({ message: 'Cache cleared', pct: 0, bytesDownloaded: 0 });
+    const model = sel.value; await client.purge(); log('Purged cache for model'); setProgress({ message: 'Cache cleared', pct: 0, bytesDownloaded: 0 });
   };
 
   $('abort').onclick = async () => {

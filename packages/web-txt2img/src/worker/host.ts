@@ -175,16 +175,30 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
       break;
     }
     case 'unload': {
-      unloadModel(msg.model)
+      const target: ModelId | null = (msg.model ?? loadedModel) ?? null;
+      if (!target) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: 'No model loaded to unload.' });
+        break;
+      }
+      if (loadedModel && loadedModel !== target) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: `Loaded model is "${loadedModel}"; requested unload "${target}".` });
+        break;
+      }
+      unloadModel(target)
         .then(() => {
-          if (loadedModel === msg.model) loadedModel = null;
+          if (loadedModel === target) loadedModel = null;
           post({ id: msg.id, type: 'result', ok: true });
         })
         .catch((e) => post({ id: msg.id, type: 'result', ok: false, reason: 'internal_error', message: String(e) }));
       break;
     }
     case 'purge': {
-      purgeModelCache(msg.model)
+      const target: ModelId | null = (msg.model ?? loadedModel) ?? null;
+      if (!target) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: 'No model specified and none loaded; cannot purge.' });
+        break;
+      }
+      purgeModelCache(target)
         .then(() => post({ id: msg.id, type: 'result', ok: true }))
         .catch((e) => post({ id: msg.id, type: 'result', ok: false, reason: 'internal_error', message: String(e) }));
       break;
@@ -200,10 +214,28 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
       const replaceQueued = msg.replaceQueued ?? true;
       const debounceMs = Math.max(0, msg.debounceMs ?? 0);
 
+      // Resolve model: use explicit param, else currently loaded.
+      const reqModel = (msg.params as any).model as ModelId | undefined;
+      const resolvedModel: ModelId | null = (reqModel ?? loadedModel) ?? null;
+      if (!resolvedModel) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: 'No model loaded; specify a model or call load() first.' });
+        break;
+      }
+      if (!loadedModel) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: 'No model loaded; call load() first.' });
+        break;
+      }
+      if (loadedModel !== resolvedModel) {
+        post({ id: msg.id, type: 'result', ok: false, reason: 'model_not_loaded', message: `Loaded model is "${loadedModel}"; requested generate for "${resolvedModel}".` });
+        break;
+      }
+
+      const resolvedParams: JobParams = { ...(msg.params as any), model: resolvedModel };
+
       // If idle, start immediately
       if (!currentJob) {
         const controller = new AbortController();
-        currentJob = { id: msg.id, controller, params: msg.params };
+        currentJob = { id: msg.id, controller, params: resolvedParams };
         runJob(currentJob);
         break;
       }
@@ -215,7 +247,7 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
       }
 
       if (policy === 'abort_and_queue') {
-        const pj: PendingJob = { id: msg.id, params: msg.params };
+        const pj: PendingJob = { id: msg.id, params: resolvedParams };
         if (replaceQueued) supersedePending(pj); else if (!pendingJob) pendingJob = pj; else { post({ id: msg.id, type: 'result', ok: false, reason: 'busy' }); break; }
 
         if (debounceMs > 0) {
@@ -237,13 +269,13 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
       // Default: 'queue'
       if (pendingJob) {
         if (replaceQueued) {
-          supersedePending({ id: msg.id, params: msg.params, debounceUntil: debounceMs ? Date.now() + debounceMs : undefined });
+          supersedePending({ id: msg.id, params: resolvedParams, debounceUntil: debounceMs ? Date.now() + debounceMs : undefined });
           post({ id: msg.id, type: 'accepted' });
         } else {
           post({ id: msg.id, type: 'result', ok: false, reason: 'busy' });
         }
       } else {
-        pendingJob = { id: msg.id, params: msg.params, debounceUntil: debounceMs ? Date.now() + debounceMs : undefined };
+        pendingJob = { id: msg.id, params: resolvedParams, debounceUntil: debounceMs ? Date.now() + debounceMs : undefined };
         post({ id: msg.id, type: 'accepted' });
       }
       setState('queued');

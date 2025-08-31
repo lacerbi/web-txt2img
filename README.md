@@ -100,7 +100,7 @@ if (!loadRes?.ok) throw new Error(loadRes?.message ?? 'load failed');
 
 // 4) Generate an image
 const { promise, abort } = client.generate(
-  { model: 'sd-turbo', prompt: 'a cozy cabin in the woods, watercolor', seed: 42 },
+  { prompt: 'a cozy cabin in the woods, watercolor', seed: 42 },
   (e) => console.log('gen:', e),
   { busyPolicy: 'queue', debounceMs: 200 }
 );
@@ -114,13 +114,13 @@ if (gen.ok) {
 }
 
 // 5) Cleanup when done
-await client.unload('sd-turbo');
-// Optionally: await client.purge('sd-turbo');
+await client.unload();
+// Optionally: await client.purge();
 ```
 
 ### Model IDs (strings)
 
-Use these exact strings when calling `load`, `generate`, `unload`, or `purge`:
+Use these exact strings when calling `load`. For `generate`, `unload`, and `purge` the worker defaults to the currently loaded model if omitted:
 
 - `sd-turbo`: SD‑Turbo (ONNX Runtime Web)
 - `janus-pro-1b`: Janus‑Pro‑1B (Transformers.js)
@@ -152,8 +152,8 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 ## API Overview (Worker)
 
 - Detect/backends/models: `client.detect()`, `client.listBackends()`, `client.listModels()`
-- Lifecycle: `client.load(model, options?, onProgress?)`, `client.unload(model)`, `client.purge(model)`, `client.purgeAll()`
-- Generation: `client.generate(params, onProgress?, { busyPolicy, replaceQueued, debounceMs }?)` returns `{ id, promise, abort }`
+- Lifecycle: `client.load(model, options?, onProgress?)`, `client.unload(model?)`, `client.purge(model?)`, `client.purgeAll()`
+- Generation: `client.generate(params, onProgress?, { busyPolicy, replaceQueued, debounceMs }?)` returns `{ id, promise, abort }` (`params.model` optional; defaults to loaded model)
 - Queue semantics: single‑flight with single‑slot queue (latest wins by default)
 
 ## Parameters & Semantics

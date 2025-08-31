@@ -40,12 +40,12 @@ Types are defined in `packages/web-txt2img/src/worker/protocol.ts` and re‑expo
   - `{ id, kind: 'listModels' }`
   - `{ id, kind: 'listBackends' }`
   - `{ id, kind: 'load', model, options? }`
-  - `{ id, kind: 'unload', model }`
-  - `{ id, kind: 'purge', model }`
+  - `{ id, kind: 'unload', model? }`
+  - `{ id, kind: 'purge', model? }`
   - `{ id, kind: 'purgeAll' }`
 - Generate
-  - `{ id, kind: 'generate', params, busyPolicy?, replaceQueued?, debounceMs? }`
-    - `params`: `{ model, prompt, seed?, width?, height? }` (same as base API minus `signal`/`onProgress`)
+- `{ id, kind: 'generate', params, busyPolicy?, replaceQueued?, debounceMs? }`
+    - `params`: `{ model?, prompt, seed?, width?, height? }` (`model` is optional in the worker; defaults to the currently loaded model)
     - `busyPolicy`: `'reject' | 'abort_and_queue' | 'queue'` (default `'queue'`)
     - `replaceQueued`: boolean (default `true`)
     - `debounceMs`: number (default `0`)
@@ -92,8 +92,8 @@ Methods
 - `listBackends(): Promise<BackendId[]>`
 - `load(model, options?, onProgress?)`
   - Enforces single‑model policy; rejects if another model is already loaded or a load is in flight.
-- `unload(model)`
-- `purge(model)`
+- `unload(model?)`
+- `purge(model?)`
 - `purgeAll()`
 - `generate(params, onProgress?, { busyPolicy, replaceQueued, debounceMs }?)`
   - Returns `{ id, promise, abort }`
@@ -110,7 +110,7 @@ const loadRes = await client.load('sd-turbo', {
 }, (p) => console.log('load:', p));
 
 const { promise, abort } = client.generate(
-  { model: 'sd-turbo', prompt: 'a watercolor cabin', seed: 42 },
+  { prompt: 'a watercolor cabin', seed: 42 },
   (e) => console.log('gen:', e),
   { busyPolicy: 'queue', debounceMs: 200 }
 );
@@ -180,7 +180,8 @@ Important types: see `src/types.ts`.
   - `modelBaseUrl?: string` (override default CDN for SD‑Turbo)
 
 `GenerateParams`
-- `model: ModelId`, `prompt: string`, `seed?: number`, `width?: number`, `height?: number`, `signal?: AbortSignal`, `onProgress?: (event) => void`
+- Base (direct API): `model: ModelId`, `prompt: string`, `seed?: number`, `width?: number`, `height?: number`, `signal?: AbortSignal`, `onProgress?: (event) => void`
+- Worker convenience: `model` is optional and defaults to the currently loaded model. If none is loaded or the provided `model` mismatches the loaded one, the worker returns `{ ok:false, reason:'model_not_loaded' }`.
 
 `GenerateResult`
 - Success: `{ ok: true, blob: Blob, timeMs: number }`
