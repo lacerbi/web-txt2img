@@ -1,8 +1,6 @@
 # web-txt2img — Browser‑Only Text‑to‑Image Library
 
-A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It supports multiple backends (WebGPU, WebNN, WASM) and models via pluggable adapters.
-
-This README shows the recommended worker‑first integration for application developers. For the full advanced guide (worker protocol and the underlying direct API), see docs/DEVELOPER_GUIDE.md.
+A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It uses open-weights text-to-image generation models such as SD-Turbo and Janus-Pro-1B. It supports multiple backends (WebGPU, WebNN, WASM) and models via pluggable adapters. Models are downloaded on-the-fly and stored locally.
 
 ## Features
 
