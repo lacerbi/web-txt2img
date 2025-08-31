@@ -172,6 +172,185 @@ Model registry entries now include approximate size fields for UX:
 - The Worker host and protocol, as well as the underlying direct API, are documented in docs/DEVELOPER_GUIDE.md.
 - Includes dependency injection (custom ORT, tokenizer), custom model hosting, and full type references.
 
+Here’s a drop-in section you can add to the README.
+
+---
+
+## Recipes
+
+Practical snippets distilled from `examples/vanilla-worker` so you don’t have to open the example to get started.
+
+### 1) Dev vs. Prod WASM paths (Vite)
+
+Use the ONNX Runtime Web WASM assets directly from `node_modules` in **dev**, and from `/public/ort/` in **prod**.
+
+```ts
+// vite.config.ts — expose a dev-only absolute path to ORT's dist folder
+import { defineConfig } from 'vite';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+let ortPkgPath = '';
+try { ortPkgPath = require.resolve('onnxruntime-web/package.json'); } catch {}
+const ortDistFs = path.join(ortPkgPath ? path.dirname(ortPkgPath) : path.resolve('node_modules/onnxruntime-web'), 'dist');
+const ORT_WASM_BASE_DEV = `/@fs/${ortDistFs}/`;
+
+export default defineConfig({
+  define: { __ORT_WASM_BASE_DEV__: JSON.stringify(ORT_WASM_BASE_DEV) },
+});
+```
+
+```js
+// When loading SD-Turbo
+const isJanus = model === 'janus-pro-1b';
+const wasmPaths = isJanus ? undefined
+  : (import.meta.env?.DEV ? __ORT_WASM_BASE_DEV__ : (import.meta.env.BASE_URL || '/') + 'ort/');
+
+await client.load(model, {
+  backendPreference: isJanus ? ['webgpu'] : ['webgpu', 'wasm'],
+  ...(wasmPaths ? { wasmPaths } : {}),
+  ...(wasmPaths ? { wasmNumThreads: Math.min(4, navigator.hardwareConcurrency ?? 2) } : {}),
+  ...(wasmPaths ? { wasmSimd: true } : {}),
+}, onProgress);
+```
+
+> Production: copy the ORT files into `public/ort/` (e.g., via a small script) and serve them. See “WASM Assets” above for the one-liner `cp` command.
+
+### 2) Progress UI wiring (standardized fields)
+
+`load()` (and `generate()`) emit normalized progress with `pct`, and—when available—`bytesDownloaded` and `totalBytesExpected`. A tiny helper drives a `<progress>` bar and a status line:
+
+```html
+<progress id="bar" max="100" value="0" style="width: 420px;"></progress>
+<span id="line">Idle</span>
+```
+
+```js
+function setProgress(p = {}) {
+  const bar = document.getElementById('bar');
+  const line = document.getElementById('line');
+  const pct = p.pct != null ? `${p.pct}%` : '';
+  let size = '';
+  if (p.bytesDownloaded != null && p.totalBytesExpected != null) {
+    size = ` ${(p.bytesDownloaded/1024/1024).toFixed(1)}/${(p.totalBytesExpected/1024/1024).toFixed(1)}MB`;
+  }
+  line.textContent = `${p.message ?? ''} ${pct}${size}`.trim();
+  if (p.pct != null) bar.value = p.pct; else bar.removeAttribute('value');
+}
+
+// Use it:
+await client.load('sd-turbo', opts, (p) => setProgress(p));
+const { promise } = client.generate({ prompt, seed }, (e) => setProgress({ ...e, message: `generate: ${e.phase}` }));
+```
+
+### 3) “Live” UIs: queue + debounce + abort
+
+Use a single-slot queue with debounce while the user types; wire the returned `abort()` to a button:
+
+```js
+let generating = false;
+let currentAbort = null;
+
+async function startGeneration(prompt, seed) {
+  if (generating) return;
+  generating = true;
+  const { promise, abort } = client.generate(
+    { prompt, seed },
+    (e) => setProgress({ ...e, message: `generate: ${e.phase}` }),
+    { busyPolicy: 'queue', debounceMs: 200 }
+  );
+  currentAbort = abort;
+  const res = await promise;
+  generating = false;
+  currentAbort = null;
+  if (res.ok) document.querySelector('#out').src = URL.createObjectURL(res.blob);
+}
+
+document.querySelector('#abort').onclick = async () => {
+  if (currentAbort) { try { await currentAbort(); } catch {} }
+};
+```
+
+### 4) Model size in UX + measured downloads
+
+Use registry estimates **before** loading, and the **actual bytes** from the load result:
+
+```js
+const models = await client.listModels();
+const sd = models.find(m => m.id === 'sd-turbo');
+console.log(`Approx size: ${(sd.sizeBytesApprox/1024/1024).toFixed(1)} MB`);
+
+const res = await client.load('sd-turbo', opts, onProgress);
+if (res.ok) {
+  console.log('Backend used:', res.backendUsed);
+  if (typeof res.bytesDownloaded === 'number') {
+    console.log('Downloaded (measured):', (res.bytesDownloaded/1024/1024).toFixed(1), 'MB');
+  }
+}
+```
+
+### 5) Janus-Pro-1B quick checklist
+
+* **WebGPU-only** (no WASM/WebNN path in this adapter).
+* Ensure `@huggingface/transformers` is available:
+
+  * **Bundled:** `npm i @huggingface/transformers` and import normally.
+  * **Script tag:** include Transformers.js to expose a global `window.transformers` (check the official docs for the latest URL).
+
+    ```html
+    <!-- Example; confirm the latest version/URL in the Transformers.js docs -->
+    <script src="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.x/dist/transformers.min.js"></script>
+    ```
+* Then simply:
+
+  ```js
+  await client.load('janus-pro-1b', { backendPreference: ['webgpu'] }, onProgress);
+  const { promise } = client.generate({ prompt: 'a watercolor cabin at dusk' }, onProgress);
+  const res = await promise;
+  ```
+
+### 6) One model at a time (worker policy)
+
+The worker enforces a **single loaded model**. To switch:
+
+```js
+await client.unload();            // unload current
+await client.load('janus-pro-1b', { backendPreference: ['webgpu'] });
+```
+
+If you try to `load()` while another is loaded (or a load is in flight), you’ll get `{ ok:false, reason:'busy' }`.
+
+### 7) Self-hosting SD-Turbo (and injecting a tokenizer)
+
+Point to your own CDN and (optionally) inject a tokenizer to avoid bundling `@xenova/transformers` globally:
+
+```js
+await client.load('sd-turbo', {
+  backendPreference: ['webgpu', 'wasm'],
+  wasmPaths: '/ort/',
+  modelBaseUrl: 'https://my-cdn.example.com/sd-turbo-ort-web',
+  tokenizerProvider: async () => {
+    const { AutoTokenizer } = await import('@xenova/transformers');
+    const tok = await AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
+    tok.pad_token_id = 0;
+    return (text, opts) => tok(text, opts);
+  },
+}, onProgress);
+```
+
+### 8) Cache control
+
+Artifacts are cached in Cache Storage per model. You can clear them:
+
+```js
+await client.purge();   // purge the currently-loaded model’s cache
+await client.purgeAll();// purge all web-txt2img caches
+```
+
+> Tip: after `purge()`, the next `load()` will re-download the model; consider showing a warning in your UI.
+
+---
+
 ## Troubleshooting
 
 - Error: “no available backend found … both async and sync fetching of the wasm failed”
