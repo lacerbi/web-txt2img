@@ -19,4 +19,3 @@ export async function detectCapabilities(): Promise<Capabilities> {
 export function listBackends(): Array<'webgpu' | 'webnn' | 'wasm'> {
   return ['webgpu', 'webnn', 'wasm'];
 }
-

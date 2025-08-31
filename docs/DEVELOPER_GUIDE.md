@@ -31,7 +31,7 @@ This document defines the Worker protocol and client wrapper, explains policies 
 
 ## 3) Worker Protocol
 
-Types are defined in `src/worker/protocol.ts` and re‑exported from `src/index.ts`.
+Types are defined in `packages/web-txt2img/src/worker/protocol.ts` and re‑exported from `packages/web-txt2img/src/index.ts`.
 
 ### 3.1 Requests → Worker
 
@@ -74,7 +74,7 @@ Special cases
 
 ## 4) Worker Client Wrapper
 
-The wrapper lives in `src/worker/client.ts` and is exported from `src/index.ts`.
+The wrapper lives in `packages/web-txt2img/src/worker/client.ts` and is exported from `packages/web-txt2img/src/index.ts`.
 
 Creation
 
@@ -151,7 +151,7 @@ const models2 = listSupportedModels();
 
 ## 5) Base (Direct) API
 
-Exports from `src/index.ts`. Useful in tests or if running inside your own worker.
+Exports from `packages/web-txt2img/src/index.ts`. Useful in tests or if running inside your own worker.
 
 - Capabilities and registry
   - `detectCapabilities(): Promise<{ webgpu; shaderF16; webnn; wasm }>`
@@ -209,8 +209,8 @@ Janus‑Pro‑1B (Transformers.js)
 
 - ESM Worker: created as `new Worker(new URL('./host.ts', import.meta.url), { type: 'module' })`. This pattern is recognized by Vite and other bundlers.
 - ONNX WASM assets:
-  - Dev (Vite): `wasmPaths: '/node_modules/onnxruntime-web/dist/'`
-  - Prod: copy to `public/ort/` and pass `wasmPaths: '/ort/'`
+  - Recommended (dev and prod): copy ORT dist files to `public/ort/` in your app and pass `wasmPaths: '/ort/'`.
+  - Vite (advanced dev): use an absolute `/@fs/.../node_modules/onnxruntime-web/dist/` path for `wasmPaths`. The example app shows how to derive it safely with `require.resolve`.
 - COOP/COEP: serve with cross‑origin isolation to enable WASM threads for best performance.
 - CSP: include appropriate `worker-src` and `connect-src` entries for your model hosting/CDN.
 
@@ -252,8 +252,8 @@ Janus‑Pro‑1B (Transformers.js)
 
 ## 11) References
 
-- Public types: `src/types.ts`
-- Worker protocol: `src/worker/protocol.ts`
-- Worker host: `src/worker/host.ts`
-- Worker client: `src/worker/client.ts`
-- Example app: `examples/minimal/`
+- Public types: `packages/web-txt2img/src/types.ts`
+- Worker protocol: `packages/web-txt2img/src/worker/protocol.ts`
+- Worker host: `packages/web-txt2img/src/worker/host.ts`
+- Worker client: `packages/web-txt2img/src/worker/client.ts`
+- Example app: `examples/vanilla-worker/`

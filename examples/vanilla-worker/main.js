@@ -1,4 +1,4 @@
-import { Txt2ImgWorkerClient } from '/src/index.ts';
+import { Txt2ImgWorkerClient } from 'web-txt2img';
 
 const $ = (id) => document.getElementById(id);
 const log = (m) => { const el = $('log'); el.textContent += `${m}\n`; el.scrollTop = el.scrollHeight; };
@@ -34,8 +34,8 @@ async function init() {
     // Configure backends and assets per model
     const isJanus = model === 'janus-pro-1b';
     const wasmPaths = isJanus ? undefined : (import.meta.env && import.meta.env.DEV
-      ? '/node_modules/onnxruntime-web/dist/'
-      : '/ort/');
+      ? __ORT_WASM_BASE_DEV__
+      : (import.meta.env.BASE_URL || '/') + 'ort/');
     const res = await client.load(model, {
       backendPreference: isJanus ? ['webgpu'] : ['webgpu', 'wasm'],
       ...(wasmPaths ? { wasmPaths } : {}),

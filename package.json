@@ -1,26 +1,18 @@
 {
-  "name": "web-txt2img",
-  "version": "0.1.0",
-  "type": "module",
+  "name": "web-txt2img-workspace",
+  "version": "0.0.0",
   "private": true,
-  "description": "Browser-only text-to-image generation library (scaffold)",
+  "description": "Workspace for web-txt2img (library + examples)",
   "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
   "scripts": {
-    "build": "tsc -p .",
-    "typecheck": "tsc -p . --noEmit",
-    "clean": "rm -rf dist",
-    "prepare:ort-assets": "node scripts/copy-ort-assets.cjs",
-    "predev": "npm run prepare:ort-assets",
-    "postinstall": "npm run prepare:ort-assets",
-    "dev": "vite"
-  },
-  "dependencies": {
-    "@huggingface/transformers": "^3.7.1",
-    "onnxruntime-web": "^1.18.0",
-    "@xenova/transformers": "latest"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.2",
-    "vite": "^5.4.0"
+    "build:lib": "npm run -w packages/web-txt2img build",
+    "typecheck": "npm run -w packages/web-txt2img typecheck",
+    "clean": "rm -rf packages/web-txt2img/dist examples/vanilla-worker/dist",
+    "dev:vanilla": "npm run build:lib && npm run -w examples/vanilla-worker dev",
+    "build:vanilla": "npm run build:lib && npm run -w examples/vanilla-worker build"
   }
 }

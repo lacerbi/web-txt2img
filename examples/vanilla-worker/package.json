@@ -1,0 +1,21 @@
+{
+  "name": "vanilla-worker-example",
+  "private": true,
+  "type": "module",
+  "description": "Minimal Vite app demonstrating web-txt2img",
+  "scripts": {
+    "predev": "node scripts/copy-ort-assets.cjs",
+    "prebuild": "node scripts/copy-ort-assets.cjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --open"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.18.0",
+    "@xenova/transformers": "latest",
+    "@huggingface/transformers": "^3.7.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

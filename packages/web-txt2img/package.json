@@ -1,0 +1,41 @@
+{
+  "name": "web-txt2img",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Browser-only text-to-image generation library",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "onnxruntime-web": "^1.18.0",
+    "@xenova/transformers": "*",
+    "@huggingface/transformers": "^3" 
+  },
+  "peerDependenciesMeta": {
+    "@xenova/transformers": { "optional": true },
+    "@huggingface/transformers": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

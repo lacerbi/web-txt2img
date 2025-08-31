@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>web-txt2img — Minimal Example</title>
+    <title>web-txt2img — Vanilla Worker Example</title>
     <style>
       body { font-family: system-ui, sans-serif; margin: 20px; }
       #log { white-space: pre-wrap; background: #111; color: #ddd; padding: 8px; border-radius: 6px; max-height: 200px; overflow: auto; }
@@ -12,9 +12,8 @@
     </style>
   </head>
   <body>
-    <h1>web-txt2img — Minimal Example</h1>
+    <h1>web-txt2img — Vanilla Worker Example</h1>
 
-    <!-- Row 1: Model + Load/Unload (+ Purge nearby) -->
     <div class="row" id="model-row">
       <label>Model:
         <select id="model"></select>
@@ -24,12 +23,10 @@
       <button id="purge">Purge Cache</button>
     </div>
 
-    <!-- Row 2: Capabilities -->
     <div class="row" id="caps-row">
       <strong>Capabilities:</strong> <span id="caps"></span>
     </div>
 
-    <!-- Row 3: Prompt/Seed + Generate/Abort -->
     <div class="row" id="gen-row">
       <label>Prompt:
         <input id="prompt" size="50" placeholder="A cute robot sketch, line art" />
@@ -41,13 +38,11 @@
       <button id="abort" disabled>Abort</button>
     </div>
 
-    <!-- Row 4: Progress -->
     <div id="progress-wrap">
       <div id="progress-line">Idle</div>
       <progress id="progress-bar" max="100" value="0" style="width: 420px;"></progress>
     </div>
 
-    <!-- Row 5: Split view (logs left, image right) -->
     <div id="split">
       <div id="log-panel">
         <div id="log"></div>
@@ -74,3 +69,4 @@
     <script type="module" src="./main.js"></script>
   </body>
   </html>
+

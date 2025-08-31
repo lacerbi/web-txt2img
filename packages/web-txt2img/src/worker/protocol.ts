@@ -43,4 +43,3 @@ export type WorkerStateMsg = { type: 'state'; value: WorkerState };
 export type WorkerResponse = WorkerAccepted | WorkerProgress | WorkerGenerateResult | WorkerRpcResult | WorkerStateMsg;
 
 export type { BackendId };
-

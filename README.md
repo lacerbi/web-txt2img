@@ -70,13 +70,13 @@ Notes:
 
 ## Getting Started (Example App)
 
-To see the library in action, run the minimal example included in this repo:
+This repo is organized as a workspace. The minimal example lives under `examples/vanilla-worker`.
 
 - Install deps: `npm i`
-- Start dev server: `npm run dev`
-- Open: `http://localhost:5173/examples/minimal/`
+- Start example dev server: `npm run dev:vanilla`
+- Open: `http://localhost:5173/`
 
-Details and production notes are in `examples/minimal/README.md`.
+Details and production notes are in `examples/vanilla-worker/README.md`.
 
 ## Quickstart (Worker‑First)
 
@@ -139,8 +139,8 @@ const models = await client.listModels();
 ONNX Runtime Web needs to fetch its runtime files (`ort-wasm*.wasm`, `*.jsep.mjs`). You must ensure they are served and tell ORT where they live via `wasmPaths`.
 
 Common setups:
-- Dev with Vite: use `wasmPaths: '/node_modules/onnxruntime-web/dist/'`.
-- Production: copy files to your public folder and serve at `/ort/`.
+- Recommended (dev and prod): copy files to your public folder and serve at `/ort/`, then set `wasmPaths: '/ort/'`.
+- Vite (advanced): in dev, point `wasmPaths` to the package dist via an absolute `/@fs/.../node_modules/onnxruntime-web/dist/` path. See `examples/vanilla-worker/vite.config.ts` for a robust way to compute this.
 
 Example copy (production):
 ```bash
