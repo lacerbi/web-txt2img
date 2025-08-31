@@ -40,6 +40,8 @@ export interface LoadOptions {
   wasmNumThreads?: number;
   wasmSimd?: boolean;
   modelBaseUrl?: string; // override default HF base for SD‑Turbo models
+  // Approximate total model bytes for standardized load progress; injected from registry
+  approxTotalBytes?: number;
 }
 
 export interface LoadProgress {

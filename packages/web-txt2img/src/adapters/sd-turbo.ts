@@ -121,12 +121,14 @@ export class SDTurboAdapter implements Adapter {
 
       // Fetch and create sessions with progress
       let bytesDownloaded = 0;
-      const totalExpected = Object.values(models).reduce((acc, m) => acc + m.sizeMB * 1024 * 1024, 0);
+      // Use approximate grand total injected from registry (single source of truth)
+      const fallbackTotal = Object.values(models).reduce((acc, m) => acc + m.sizeMB * 1024 * 1024, 0);
+      const GRAND_APPROX = (typeof options.approxTotalBytes === 'number' ? options.approxTotalBytes : fallbackTotal);
       options.onProgress?.({
         phase: 'loading',
-        message: `starting downloads (~${Math.round(totalExpected/1024/1024)}MB total)...`,
+        message: `starting downloads (~${Math.round(GRAND_APPROX/1024/1024)}MB total)...`,
         bytesDownloaded: 0,
-        totalBytesExpected: totalExpected,
+        totalBytesExpected: GRAND_APPROX,
         pct: 0,
         accuracy: 'exact',
       });
@@ -135,13 +137,13 @@ export class SDTurboAdapter implements Adapter {
         options.onProgress?.({ phase: 'loading', message: `downloading ${model.url}...`, bytesDownloaded });
         const expectedTotal = model.sizeMB * 1024 * 1024;
         const buf = await fetchArrayBufferWithCacheProgress(`${base}/${model.url}`, this.id, (loaded, total) => {
-          const pct = totalExpected ? Math.round(((bytesDownloaded + loaded) / totalExpected) * 100) : undefined;
+          const pct = Math.min(100, Math.round(((bytesDownloaded + loaded) / GRAND_APPROX) * 100));
           options.onProgress?.({
             phase: 'loading',
             message: `downloading ${model.url}...`,
             pct,
             bytesDownloaded: bytesDownloaded + loaded,
-            totalBytesExpected: totalExpected,
+            totalBytesExpected: GRAND_APPROX,
             asset: model.url,
             accuracy: 'exact',
           });
@@ -154,7 +156,7 @@ export class SDTurboAdapter implements Adapter {
           phase: 'loading',
           message: `${model.url} ready in ${ms.toFixed(1)}ms`,
           bytesDownloaded,
-          totalBytesExpected: totalExpected,
+          totalBytesExpected: GRAND_APPROX,
           asset: model.url,
           accuracy: 'exact',
         });

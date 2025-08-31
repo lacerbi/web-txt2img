@@ -64,14 +64,14 @@ export class JanusProAdapter implements Adapter {
     } catch {}
 
     const model_id = 'onnx-community/Janus-Pro-1B-ONNX';
-    // Hardcoded approximate expected total for better global % (see registry).
-    const TOTAL_BYTES_APPROX = 2300 * 1024 * 1024; // ~2.25 GB
+    // Approximate expected total injected from registry (single source of truth).
+    const TOTAL_BYTES_APPROX: number | undefined = typeof options.approxTotalBytes === 'number' ? options.approxTotalBytes : undefined;
     options.onProgress?.({
       phase: 'loading',
       message: 'Loading Janus-Pro-1B (starting downloads)…',
       bytesDownloaded: 0,
       totalBytesExpected: TOTAL_BYTES_APPROX,
-      pct: 0,
+      pct: typeof TOTAL_BYTES_APPROX === 'number' ? 0 : undefined,
       accuracy: 'approximate',
     });
 
@@ -91,7 +91,9 @@ export class JanusProAdapter implements Adapter {
           }
           const sum = Array.from(seen.values()).reduce((a, b) => a + b, 0);
           if (sum > lastBytes) lastBytes = sum;
-          const pct = Math.max(0, Math.min(100, Math.round((lastBytes / TOTAL_BYTES_APPROX) * 100)));
+          const pct = typeof TOTAL_BYTES_APPROX === 'number'
+            ? Math.max(0, Math.min(100, Math.round((lastBytes / TOTAL_BYTES_APPROX) * 100)))
+            : undefined;
           options.onProgress?.({
             phase: 'loading',
             message: x?.status ?? 'loading…',
@@ -125,11 +127,13 @@ export class JanusProAdapter implements Adapter {
 
       const [processor, model] = await Promise.all([processorP, modelP]);
       // Ensure a final 100% event for UIs even if callbacks were cached/quick
-      lastBytes = Math.max(lastBytes, TOTAL_BYTES_APPROX);
+      if (typeof TOTAL_BYTES_APPROX === 'number') {
+        lastBytes = Math.max(lastBytes, TOTAL_BYTES_APPROX);
+      }
       options.onProgress?.({
         phase: 'loading',
         message: 'Janus-Pro-1B ready',
-        bytesDownloaded: TOTAL_BYTES_APPROX,
+        bytesDownloaded: typeof TOTAL_BYTES_APPROX === 'number' ? TOTAL_BYTES_APPROX : lastBytes,
         totalBytesExpected: TOTAL_BYTES_APPROX,
         pct: 100,
         accuracy: 'approximate',

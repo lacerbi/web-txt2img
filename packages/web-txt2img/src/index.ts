@@ -55,7 +55,10 @@ export async function loadModel(id: ModelId, options: LoadOptions = {}): Promise
   const backendPreference = options.backendPreference ?? defaultBackendPreferenceFor(id);
   const chosen = backendPreference.find((b) => supported.includes(b));
   if (!chosen) return { ok: false, reason: 'backend_unavailable', message: 'No backend available matching preference' };
-  return a.load({ ...options, backendPreference });
+  // Inject approx size from registry as the single source of truth
+  const info = getModelInfo(id);
+  const approxTotalBytes = typeof options.approxTotalBytes === 'number' ? options.approxTotalBytes : info.sizeBytesApprox;
+  return a.load({ ...options, backendPreference, approxTotalBytes });
 }
 
 export function isModelLoaded(id: ModelId): boolean {
