@@ -18,9 +18,9 @@ This README is for application developers who want to integrate the library into
   - Task: text‑to‑image (single‑step diffusion).
   - Backends: WebGPU → WebNN → WASM.
   - Seed: supported (deterministic best‑effort).
-  - Size: 512×512 (v1). Wider support coming later.
-- Janus‑Pro‑1B (Transformers.js)
-  - WebGPU only. Experimental in this repo (image generation placeholder).
+  - Size: 512×512.
+- Janus-Pro-1B (Transformers.js)
+  - WebGPU only; seed/size controls not supported.
 
 ## Requirements
 
@@ -37,8 +37,8 @@ npm i web-txt2img onnxruntime-web @xenova/transformers
 ```
 
 Notes:
-- `@xenova/transformers` is used to tokenize prompts for SD‑Turbo (CLIP). You can also inject your own tokenizer (see DI below).
-- For Janus, you can use `@huggingface/transformers` if desired (experimental here).
+- `@xenova/transformers` is used to tokenize prompts for SD-Turbo (CLIP). You can also inject your own tokenizer (see DI below).
+- To use Janus, install `@huggingface/transformers` (`npm i @huggingface/transformers`) or include it via a `<script>` tag to expose a global `transformers` (experimental here).
 
 ## Getting Started (Example App)
 
@@ -67,6 +67,7 @@ const caps = await detectCapabilities();
 console.log('caps', caps); // { webgpu, shaderF16, webnn, wasm }
 
 // 2) Load SD‑Turbo (prefers WebGPU, falls back to WASM)
+
 const loadRes = await loadModel('sd-turbo', {
   backendPreference: ['webgpu', 'wasm'],
   // Tell ONNX Runtime where to find WASM runtime files (see “WASM Assets”)
@@ -149,6 +150,7 @@ await loadModel('sd-turbo', { modelBaseUrl: 'https://your.cdn/sd-turbo' });
 - Capabilities & Registry:
   - `detectCapabilities(): Promise<{ webgpu; shaderF16; webnn; wasm }>`
   - `listSupportedModels(): ModelInfo[]` (ids, names, supportedBackends)
+  - `listBackends(): BackendId[]`
   - `getModelInfo(id)`
 
 - Lifecycle:
@@ -160,7 +162,8 @@ await loadModel('sd-turbo', { modelBaseUrl: 'https://your.cdn/sd-turbo' });
 
 - Generation:
   - `generateImage({ model, prompt, seed?, width?, height?, signal?, onProgress? }): Promise<GenerateResult>`
-  - Progress phases (SD‑Turbo): `tokenizing` → `encoding` → `denoising` → `decoding` → `complete`
+  - Progress phases (SD-Turbo): `tokenizing` → `encoding` → `denoising` → `decoding` → `complete`
+  - Progress phases (Janus): emits `image_tokens` streaming updates before `complete`
 
 ## Parameters & Semantics (SD‑Turbo)
 
