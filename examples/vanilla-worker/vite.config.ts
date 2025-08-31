@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => ({
     open: '/',
     fs: { allow: [path.resolve(__dirname, '../..')] },
   },
+  worker: {
+    format: 'es',
+  },
   resolve: {
     alias: {
       'web-txt2img': path.resolve(__dirname, '../../packages/web-txt2img/src/index.ts'),
