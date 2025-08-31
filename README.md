@@ -172,13 +172,12 @@ Model registry entries now include approximate size fields for UX:
 - The Worker host and protocol, as well as the underlying direct API, are documented in docs/DEVELOPER_GUIDE.md.
 - Includes dependency injection (custom ORT, tokenizer), custom model hosting, and full type references.
 
-Here’s a drop-in section you can add to the README.
-
----
-
 ## Recipes
 
 Practical snippets distilled from `examples/vanilla-worker` so you don’t have to open the example to get started.
+
+<details>
+<summary>Show Recipes</summary>
 
 ### 1) Dev vs. Prod WASM paths (Vite)
 
@@ -349,7 +348,7 @@ await client.purgeAll();// purge all web-txt2img caches
 
 > Tip: after `purge()`, the next `load()` will re-download the model; consider showing a warning in your UI.
 
----
+</details>
 
 ## Troubleshooting
 
