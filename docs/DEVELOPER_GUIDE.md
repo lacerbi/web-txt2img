@@ -258,3 +258,6 @@ Janus‑Pro‑1B (Transformers.js)
 - Worker host: `packages/web-txt2img/src/worker/host.ts`
 - Worker client: `packages/web-txt2img/src/worker/client.ts`
 - Example app: `examples/vanilla-worker/`
+Type notes
+- `ModelInfo` includes optional size fields for UX: `sizeBytesApprox?`, `sizeGBApprox?`, `sizeNotes?`.
+- `LoadProgress` during downloads may include: `bytesDownloaded?`, `totalBytesExpected?`, `pct?`, and optionally `asset?`, `accuracy?`.

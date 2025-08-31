@@ -122,20 +122,42 @@ export class SDTurboAdapter implements Adapter {
       // Fetch and create sessions with progress
       let bytesDownloaded = 0;
       const totalExpected = Object.values(models).reduce((acc, m) => acc + m.sizeMB * 1024 * 1024, 0);
-      options.onProgress?.({ phase: 'loading', message: `starting downloads (~${Math.round(totalExpected/1024/1024)}MB total)...`, bytesDownloaded: 0, pct: 0 });
+      options.onProgress?.({
+        phase: 'loading',
+        message: `starting downloads (~${Math.round(totalExpected/1024/1024)}MB total)...`,
+        bytesDownloaded: 0,
+        totalBytesExpected: totalExpected,
+        pct: 0,
+        accuracy: 'exact',
+      });
       for (const key of Object.keys(models) as Array<keyof typeof models>) {
         const model = models[key];
         options.onProgress?.({ phase: 'loading', message: `downloading ${model.url}...`, bytesDownloaded });
         const expectedTotal = model.sizeMB * 1024 * 1024;
         const buf = await fetchArrayBufferWithCacheProgress(`${base}/${model.url}`, this.id, (loaded, total) => {
-          const pct = total ? Math.round(((bytesDownloaded + loaded) / totalExpected) * 100) : undefined;
-          options.onProgress?.({ phase: 'loading', message: `downloading ${model.url}...`, pct, bytesDownloaded: bytesDownloaded + loaded });
+          const pct = totalExpected ? Math.round(((bytesDownloaded + loaded) / totalExpected) * 100) : undefined;
+          options.onProgress?.({
+            phase: 'loading',
+            message: `downloading ${model.url}...`,
+            pct,
+            bytesDownloaded: bytesDownloaded + loaded,
+            totalBytesExpected: totalExpected,
+            asset: model.url,
+            accuracy: 'exact',
+          });
         }, expectedTotal);
         bytesDownloaded += buf.byteLength;
         const start = performance.now();
         const sess = await (ort as any).InferenceSession.create(buf, { ...opt, ...(model.opt as any) });
         const ms = performance.now() - start;
-        options.onProgress?.({ phase: 'loading', message: `${model.url} ready in ${ms.toFixed(1)}ms`, bytesDownloaded });
+        options.onProgress?.({
+          phase: 'loading',
+          message: `${model.url} ready in ${ms.toFixed(1)}ms`,
+          bytesDownloaded,
+          totalBytesExpected: totalExpected,
+          asset: model.url,
+          accuracy: 'exact',
+        });
         (this.sessions as any)[key] = sess;
       }
 

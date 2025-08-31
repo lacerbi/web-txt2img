@@ -37,7 +37,16 @@ export type WorkerRequest =
 export type WorkerState = 'idle' | 'running' | 'aborting' | 'queued';
 
 export type WorkerAccepted = { id: string; type: 'accepted' };
-export type WorkerProgress = { id: string; type: 'progress'; event: GenerationProgressEvent & { pct?: number } };
+export type WorkerProgress = {
+  id: string;
+  type: 'progress';
+  event: GenerationProgressEvent & {
+    pct?: number;
+    bytesDownloaded?: number;
+    totalBytesExpected?: number;
+    message?: string;
+  };
+};
 
 export type WorkerGenerateResult =
   | { id: string; type: 'result'; ok: true; blob: Blob; timeMs: number }

@@ -69,7 +69,7 @@ export class Txt2ImgWorkerClient {
     return res.data;
   }
 
-  async listModels(): Promise<Array<{ id: ModelId; displayName: string; task: 'text-to-image'; supportedBackends: BackendId[]; notes?: string }>> {
+  async listModels(): Promise<Array<{ id: ModelId; displayName: string; task: 'text-to-image'; supportedBackends: BackendId[]; notes?: string; sizeBytesApprox?: number; sizeGBApprox?: number; sizeNotes?: string }>> {
     const res: any = await this.send({ id: uid(), kind: 'listModels' });
     return res.data;
   }

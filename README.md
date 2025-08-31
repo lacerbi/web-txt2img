@@ -156,11 +156,16 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 - Generation: `client.generate(params, onProgress?, { busyPolicy, replaceQueued, debounceMs }?)` returns `{ id, promise, abort }` (`params.model` optional; defaults to loaded model)
 - Queue semantics: single‑flight with single‑slot queue (latest wins by default)
 
+Progress events on `load` include standardized fields: `bytesDownloaded` and `totalBytesExpected` (when known) and `pct`. UIs can render precise progress for SD‑Turbo and best‑effort for Janus.
+
 ## Parameters & Semantics
 
 - `prompt`: required
 - `seed`: supported for `sd-turbo`; deterministic where backend/drivers allow
 - `width/height`: 512×512
+
+Model registry entries now include approximate size fields for UX:
+- `sizeBytesApprox?`, `sizeGBApprox?`, `sizeNotes?`
 
 ## Advanced Usage
 

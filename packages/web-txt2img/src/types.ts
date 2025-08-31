@@ -24,6 +24,10 @@ export interface ModelInfo {
   task: 'text-to-image';
   supportedBackends: BackendId[];
   notes?: string;
+  // Approximate model size information for UX purposes (optional, non-breaking)
+  sizeBytesApprox?: number;
+  sizeGBApprox?: number;
+  sizeNotes?: string;
 }
 
 export interface LoadOptions {
@@ -43,6 +47,11 @@ export interface LoadProgress {
   message?: string;
   pct?: number;
   bytesDownloaded?: number;
+  // Standardized total for computing % across adapters (optional)
+  totalBytesExpected?: number;
+  // Optional extra context for UIs
+  asset?: string;
+  accuracy?: 'exact' | 'approximate';
 }
 
 export type LoadResult =

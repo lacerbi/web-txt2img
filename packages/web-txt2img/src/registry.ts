@@ -9,6 +9,9 @@ const REGISTRY: RegistryEntry[] = [
     task: 'text-to-image',
     supportedBackends: ['webgpu', 'webnn', 'wasm'],
     notes: '512×512 only in v1; seed supported.',
+    sizeBytesApprox: 2400 * 1024 * 1024,
+    sizeGBApprox: 2.34,
+    sizeNotes: 'UNet ~640MB, text_encoder ~1700MB, vae_decoder ~95MB',
     createAdapter: () => new SDTurboAdapter(),
   },
   {
@@ -17,6 +20,9 @@ const REGISTRY: RegistryEntry[] = [
     task: 'text-to-image',
     supportedBackends: ['webgpu'],
     notes: 'WebGPU only in v1; seed unsupported.',
+    sizeBytesApprox: 2300 * 1024 * 1024,
+    sizeGBApprox: 2.25,
+    sizeNotes: 'Mixed-precision ONNX; varies slightly by device/dtype',
     createAdapter: () => new JanusProAdapter(),
   },
 ];

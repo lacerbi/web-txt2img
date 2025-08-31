@@ -1,4 +1,7 @@
 import { Txt2ImgWorkerClient } from 'web-txt2img';
+// Work around bundlers stripping worker in deps during prod build by importing URL explicitly
+// This keeps example prod build robust.
+import WorkerUrl from '../../packages/web-txt2img/src/worker/host.ts?worker&url';
 
 const $ = (id) => document.getElementById(id);
 const log = (m) => { const el = $('log'); el.textContent += `${m}\n`; el.scrollTop = el.scrollHeight; };
@@ -7,21 +10,31 @@ const setProgress = (p) => {
   const bar = $('progress-bar');
   if (!line || !bar) return;
   const pct = p?.pct != null ? `${p.pct}%` : '';
-  const mb = p?.bytesDownloaded != null ? ` ${(p.bytesDownloaded/1024/1024).toFixed(1)}MB` : '';
-  line.textContent = `${p?.message ?? ''}${pct}${mb}`.trim();
+  let sizeStr = '';
+  if (p?.bytesDownloaded != null && p?.totalBytesExpected != null) {
+    const cur = (p.bytesDownloaded/1024/1024).toFixed(1);
+    const tot = (p.totalBytesExpected/1024/1024).toFixed(1);
+    sizeStr = ` ${cur}/${tot}MB`;
+  } else if (p?.bytesDownloaded != null) {
+    sizeStr = ` ${(p.bytesDownloaded/1024/1024).toFixed(1)}MB`;
+  }
+  line.textContent = `${p?.message ?? ''}${pct}${sizeStr}`.trim();
   if (p?.pct != null) bar.value = p.pct; else bar.removeAttribute('value');
 };
 
 let client = null;
 let generating = false;
 let loadedModels = new Set();
+let loadedDetails = new Map(); // modelId -> { backendUsed, bytesDownloaded? }
 let currentAbort = null;
 
 async function init() {
-  client = Txt2ImgWorkerClient.createDefault();
+  const worker = new Worker(WorkerUrl, { type: 'module' });
+  client = new Txt2ImgWorkerClient(worker);
   const caps = await client.detect();
   $('caps').textContent = JSON.stringify(caps);
   const models = await client.listModels();
+  const modelsById = new Map(models.map((m) => [m.id, m]));
   const sel = $('model');
   models.forEach((m) => {
     const opt = document.createElement('option');
@@ -43,8 +56,36 @@ async function init() {
       ...(wasmPaths ? { wasmSimd: true } : {}),
     }, (p) => setProgress(p));
     log(`Load result: ${JSON.stringify(res)}`);
-    if (res?.ok) loadedModels.add(model);
+    if (res?.ok) { loadedModels.add(model); loadedDetails.set(model, { backendUsed: res.backendUsed, bytesDownloaded: res.bytesDownloaded }); }
     setProgress({ message: 'Ready', pct: 100 });
+  };
+
+  $('model-info').onclick = () => {
+    const model = sel.value;
+    const info = modelsById.get(model);
+    if (!info) { log('No model info available'); return; }
+    const approxBytes = info.sizeBytesApprox;
+    const approxGB = info.sizeGBApprox ?? (approxBytes ? (approxBytes / (1024*1024*1024)) : undefined);
+    const approxLine = approxBytes != null
+      ? `Approx size: ${(approxBytes/1024/1024).toFixed(1)} MB (~${approxGB?.toFixed ? approxGB.toFixed(2) : (approxGB ?? '')} GB)`
+      : 'Approx size: n/a';
+    const lines = [];
+    lines.push(`[Model] ${info.displayName} (${info.id})`);
+    lines.push(`Task: ${info.task}; Backends: ${info.supportedBackends.join(', ')}`);
+    if (info.notes) lines.push(`Notes: ${info.notes}`);
+    if (info.sizeNotes) lines.push(`Size notes: ${info.sizeNotes}`);
+    lines.push(approxLine);
+    const det = loadedDetails.get(model);
+    const isLoaded = loadedModels.has(model);
+    lines.push(`Loaded: ${isLoaded ? `yes (backend: ${det?.backendUsed ?? 'unknown'})` : 'no'}`);
+    if (det) {
+      const haveBytes = typeof det.bytesDownloaded === 'number';
+      const actualMB = haveBytes ? (det.bytesDownloaded/1024/1024).toFixed(1) : 'n/a';
+      lines.push(`Downloaded (measured): ${actualMB} MB`);
+    } else {
+      lines.push('Downloaded (measured): n/a');
+    }
+    log(lines.join('\n'));
   };
 
   $('gen').onclick = async () => {

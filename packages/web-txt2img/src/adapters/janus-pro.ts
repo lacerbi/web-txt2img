@@ -64,12 +64,46 @@ export class JanusProAdapter implements Adapter {
     } catch {}
 
     const model_id = 'onnx-community/Janus-Pro-1B-ONNX';
-    options.onProgress?.({ phase: 'loading', message: 'Loading Janus-Pro-1B processor…' });
+    // Hardcoded approximate expected total for better global % (see registry).
+    const TOTAL_BYTES_APPROX = 2300 * 1024 * 1024; // ~2.25 GB
+    options.onProgress?.({
+      phase: 'loading',
+      message: 'Loading Janus-Pro-1B (starting downloads)…',
+      bytesDownloaded: 0,
+      totalBytesExpected: TOTAL_BYTES_APPROX,
+      pct: 0,
+      accuracy: 'approximate',
+    });
 
     try {
+      // Aggregate bytes across multiple underlying downloads from Transformers.js
+      const seen = new Map<string, number>();
+      let lastBytes = 0;
       const progress_callback = (x: any) => {
-        // x may contain {status, ...} or bytes, shape varies — forward minimal info
-        options.onProgress?.({ phase: 'loading', message: x?.status ?? 'loading…' });
+        try {
+          const name = (x?.file || x?.name || x?.url || 'asset') as string;
+          const loaded = typeof x?.loaded === 'number' ? x.loaded : (typeof x?.progress === 'number' && typeof x?.total === 'number' ? Math.floor(x.progress * x.total) : undefined);
+          if (typeof loaded === 'number' && isFinite(loaded) && loaded >= 0) {
+            const prev = seen.get(name) ?? 0;
+            // Monotonic per-asset
+            const next = Math.max(prev, loaded);
+            seen.set(name, next);
+          }
+          const sum = Array.from(seen.values()).reduce((a, b) => a + b, 0);
+          if (sum > lastBytes) lastBytes = sum;
+          const pct = Math.max(0, Math.min(100, Math.round((lastBytes / TOTAL_BYTES_APPROX) * 100)));
+          options.onProgress?.({
+            phase: 'loading',
+            message: x?.status ?? 'loading…',
+            bytesDownloaded: lastBytes,
+            totalBytesExpected: TOTAL_BYTES_APPROX,
+            pct,
+            asset: typeof name === 'string' ? name : undefined,
+            accuracy: typeof x?.loaded === 'number' ? 'exact' : 'approximate',
+          });
+        } catch {
+          options.onProgress?.({ phase: 'loading', message: x?.status ?? 'loading…' });
+        }
       };
 
       const processorP = (hf as HF).AutoProcessor.from_pretrained(model_id, { progress_callback });
@@ -90,13 +124,23 @@ export class JanusProAdapter implements Adapter {
       const modelP = (hf as HF).MultiModalityCausalLM.from_pretrained(model_id, { dtype, device, progress_callback });
 
       const [processor, model] = await Promise.all([processorP, modelP]);
+      // Ensure a final 100% event for UIs even if callbacks were cached/quick
+      lastBytes = Math.max(lastBytes, TOTAL_BYTES_APPROX);
+      options.onProgress?.({
+        phase: 'loading',
+        message: 'Janus-Pro-1B ready',
+        bytesDownloaded: TOTAL_BYTES_APPROX,
+        totalBytesExpected: TOTAL_BYTES_APPROX,
+        pct: 100,
+        accuracy: 'approximate',
+      });
 
       this.hf = hf as HF;
       this.processor = processor;
       this.model = model;
       this.backendUsed = 'webgpu';
       this.loaded = true;
-      return { ok: true, backendUsed: 'webgpu' };
+      return { ok: true, backendUsed: 'webgpu', bytesDownloaded: lastBytes || undefined };
     } catch (e) {
       return { ok: false, reason: 'internal_error', message: e instanceof Error ? e.message : String(e) };
     }
