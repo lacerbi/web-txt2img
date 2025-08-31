@@ -334,11 +334,11 @@ async function tensorToPngBlob(t: any): Promise<Blob> {
   const ctx = (canvas as any).getContext('2d');
   if (!ctx) throw new Error('Canvas 2D context unavailable');
   ctx.putImageData(imageData, 0, 0);
-  if (canvas instanceof HTMLCanvasElement) {
+  const hasHTMLCanvas = typeof (globalThis as any).HTMLCanvasElement !== 'undefined';
+  if (hasHTMLCanvas && (canvas as any) instanceof (globalThis as any).HTMLCanvasElement) {
     return await new Promise<Blob>((resolve) => (canvas as HTMLCanvasElement).toBlob((b) => resolve(b!), 'image/png'));
-  } else {
-    return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
   }
+  return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
 }
 
 let _tokInstance: any = null;

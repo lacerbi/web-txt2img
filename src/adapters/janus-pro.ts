@@ -197,9 +197,9 @@ async function renderInfoImage(text: string): Promise<Blob> {
   ctx.font = '18px sans-serif';
   const lines = text.split(/\n/);
   lines.forEach((line, i) => ctx.fillText(line, 12, 28 + i * 24));
-  if (canvas instanceof HTMLCanvasElement) {
+  const hasHTMLCanvas = typeof (globalThis as any).HTMLCanvasElement !== 'undefined';
+  if (hasHTMLCanvas && (canvas as any) instanceof (globalThis as any).HTMLCanvasElement) {
     return await new Promise<Blob>((resolve) => (canvas as HTMLCanvasElement).toBlob((b) => resolve(b!), 'image/png'));
-  } else {
-    return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
   }
+  return await (canvas as OffscreenCanvas).convertToBlob({ type: 'image/png' });
 }

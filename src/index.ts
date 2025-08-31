@@ -80,3 +80,7 @@ export async function generateImage(params: GenerateParams): Promise<GenerateRes
   const { model, ...rest } = params as any;
   return a.generate(rest);
 }
+
+// Optional worker client exports for convenience
+export { Txt2ImgWorkerClient, createTxt2ImgWorker } from './worker/client.js';
+export type { WorkerRequest, WorkerResponse, WorkerBusyPolicy } from './worker/protocol.js';

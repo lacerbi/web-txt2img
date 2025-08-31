@@ -1,4 +1,4 @@
-Minimal self‑contained example (no CDN)
+Minimal example using the Worker client
 
 Dev setup
 
@@ -19,6 +19,7 @@ Dev setup
 Notes
 
 - WebGPU is preferred (backendPreference ['webgpu','wasm']); falls back to WASM.
+- The example uses the Worker client (`Txt2ImgWorkerClient.createDefault()`), which offloads generation to a module worker and enforces single‑flight with a single‑slot queue.
 - The example sets wasmPaths dynamically:
   - Dev: '/node_modules/onnxruntime-web/dist/' (works with Vite dev server)
   - Prod: '/ort/' (served from public)
@@ -26,7 +27,7 @@ Notes
   - Serve with COOP/COEP headers (cross‑origin isolated) to unlock threads.
   - Adjust wasmNumThreads/wasmSimd in the example (see main.js).
 - You can also inject your own ort/tokenizer via loadModel options if desired.
- - Abort behavior:
+- Abort behavior:
    - SD‑Turbo: phase‑boundary abort (takes effect between tokenizing/encoding/denoising/decoding phases).
    - Janus: best‑effort mid‑run abort via streamer; may delay until next safe point.
 
@@ -43,6 +44,12 @@ Janus-Pro-1B (Transformers.js)
 - Notes:
   - Seed/size controls are not supported for Janus in v1.
   - Purging model cache only affects SD‑Turbo assets; Transformers.js manages its own caches.
+
+Code highlights
+
+- Load: `client.load(model, options, onProgress)`; pass `wasmPaths` for SD‑Turbo.
+- Generate: `client.generate(params, onProgress, { busyPolicy: 'queue', debounceMs: 200 })` returns `{ id, promise, abort }`.
+- Abort: call the returned `abort()` to interrupt the current job.
 
 Automation (optional)
 
