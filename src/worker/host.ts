@@ -12,7 +12,7 @@ import {
   generateImage,
   type GenerateParams,
 } from '../index.js';
-import type { GenerateResult } from '../types.js';
+import type { GenerateResult, ModelId } from '../types.js';
 import type { WorkerRequest, WorkerResponse, WorkerState, WorkerBusyPolicy } from './protocol.js';
 
 type JobParams = Omit<GenerateParams, 'onProgress' | 'signal'>;
@@ -35,6 +35,8 @@ let aborting = false;
 const ABORT_TIMEOUT_MS = 8000;
 let abortTimer: number | null = null;
 let debounceTimer: number | null = null;
+let loadedModel: ModelId | null = null;
+let loadInFlight = false;
 
 function post(msg: WorkerResponse) {
   (self as any).postMessage(msg);
@@ -148,6 +150,13 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
       break;
     }
     case 'load': {
+      if (loadedModel || loadInFlight) {
+        const reason = 'busy';
+        const message = loadedModel ? `Model "${loadedModel}" already loaded. Unload before loading another.` : 'Another load is in progress.';
+        post({ id: msg.id, type: 'result', ok: false, reason, message });
+        break;
+      }
+      loadInFlight = true;
       loadModel(msg.model, {
         ...msg.options,
         onProgress: (p) => post({ id: msg.id, type: 'progress', event: { ...p, pct: typeof p.pct === 'number' ? p.pct : undefined } as any }),
@@ -155,17 +164,22 @@ function onMessage(ev: MessageEvent<WorkerRequest>) {
         .then((r) => {
           if ((r as any).ok) {
             post({ id: msg.id, type: 'result', ok: true, data: r });
+            loadedModel = msg.model;
           } else {
             const rr: any = r;
             post({ id: msg.id, type: 'result', ok: false, reason: rr.reason ?? 'internal_error', message: rr.message });
           }
         })
-        .catch((e) => post({ id: msg.id, type: 'result', ok: false, reason: 'internal_error', message: String(e) }));
+        .catch((e) => post({ id: msg.id, type: 'result', ok: false, reason: 'internal_error', message: String(e) }))
+        .finally(() => { loadInFlight = false; });
       break;
     }
     case 'unload': {
       unloadModel(msg.model)
-        .then(() => post({ id: msg.id, type: 'result', ok: true }))
+        .then(() => {
+          if (loadedModel === msg.model) loadedModel = null;
+          post({ id: msg.id, type: 'result', ok: true });
+        })
         .catch((e) => post({ id: msg.id, type: 'result', ok: false, reason: 'internal_error', message: String(e) }));
       break;
     }
