@@ -14,7 +14,7 @@ This README shows the recommended worker‑first integration for application dev
 
 ## Supported Models
 
-- **SD-Turbo (ONNX Runtime Web)**  
+- **SD-Turbo (ONNX Runtime Web)** (`sd-turbo`)
   Fast single-step text-to-image model distilled from Stable Diffusion 2.1 using Adversarial Diffusion Distillation (ADD). Ideal for real-time generation in the browser.  
   - Task: text-to-image (single-step diffusion; the family supports ~1–4 steps).  
   - Backends: WebGPU → WebNN → WASM (auto-selected).  
@@ -22,7 +22,7 @@ This README shows the recommended worker‑first integration for application dev
   - Assets: UNet/VAE in ONNX; CLIP tokenization via Transformers.js.  
   - References: [Model card](https://huggingface.co/stabilityai/sd-turbo), [ADD report](https://stability.ai/research/adversarial-diffusion-distillation), [ORT WebGPU docs](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html).
 
-- **Janus-Pro-1B (Transformers.js)**  
+- **Janus-Pro-1B (Transformers.js)** (`janus-pro-1b`)
   Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.  
   - Task: text-to-image (limited; no seed/size controls).  
   - Backend: WebGPU (no WASM/WebNN path).  
@@ -169,9 +169,9 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 - `width/height`: 512×512
 - Progress phases: `tokenizing → encoding → denoising → decoding → complete`
 
-## Janus‑Pro‑1B Status
+## Janus‑Pro‑1B
 
-- Adapter included; image generation has limited support here. WebGPU‑only. See docs/DEVELOPER_GUIDE.md for details and limitations.
+- WebGPU‑only. See docs/DEVELOPER_GUIDE.md for details and limitations.
 
 ## Troubleshooting
 
