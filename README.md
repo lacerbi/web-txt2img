@@ -141,6 +141,17 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 - Performance is slow
   - Prefer WebGPU. For WASM, enable SIMD/threads (COOP/COEP) and increase `wasmNumThreads`.
 
+## Acknowledgements
+
+This library’s design and adapters were inspired by prior work:
+
+- **Janus Pro WebGPU (Transformers.js example)**  
+  https://github.com/huggingface/transformers.js-examples/tree/main/janus-pro-webgpu
+
+- **ONNX Runtime Web SD-Turbo browser example**  
+  https://github.com/microsoft/onnxruntime-inference-examples/tree/main/js/sd-turbo
+  ((live demo)[https://guschmue.github.io/ort-webgpu/sd-turbo/index.html])
+
 ## License
 
 MIT — see `LICENSE` for details.
