@@ -189,6 +189,8 @@ This library’s design and adapters were inspired by prior work:
   https://github.com/microsoft/onnxruntime-inference-examples/tree/main/js/sd-turbo
   ((live demo)[https://guschmue.github.io/ort-webgpu/sd-turbo/index.html])
 
+This library was written using [Codex CLI](https://developers.openai.com/codex/cli/).
+
 ## License
 
 MIT — see `LICENSE` for details.
