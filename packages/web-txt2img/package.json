@@ -3,8 +3,38 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "description": "Browser-only text-to-image generation library",
+  "author": "Luigi Acerbi",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/lacerbi"
+  },
+  "description": "Generate images from text prompts directly in the browser using open-weights AI models",
+  "keywords": [
+    "text-to-image",
+    "stable-diffusion",
+    "sd-turbo",
+    "janus-pro",
+    "onnxruntime-web",
+    "webgpu",
+    "webnn",
+    "wasm",
+    "transformers.js",
+    "in-browser",
+    "web-worker",
+    "generative-ai",
+    "typescript",
+    "esm"
+  ],
+  "sideEffects": false,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lacerbi/web-txt2img.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lacerbi/web-txt2img/issues"
+  },
+  "homepage": "https://github.com/lacerbi/web-txt2img#readme",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
