@@ -119,6 +119,20 @@ await client.unload('sd-turbo');
 // Optionally: await client.purge('sd-turbo');
 ```
 
+### Model IDs (strings)
+
+Use these exact strings when calling `load`, `generate`, `unload`, or `purge`:
+
+- `sd-turbo`: SD‑Turbo (ONNX Runtime Web)
+- `janus-pro-1b`: Janus‑Pro‑1B (Transformers.js)
+
+You can also enumerate supported models at runtime:
+
+```ts
+const models = await client.listModels();
+// [{ id: 'sd-turbo', displayName: 'SD-Turbo …' }, { id: 'janus-pro-1b', … }]
+```
+
 ## WASM Assets (important for bundlers)
 
 ONNX Runtime Web needs to fetch its runtime files (`ort-wasm*.wasm`, `*.jsep.mjs`). You must ensure they are served and tell ORT where they live via `wasmPaths`.

@@ -130,6 +130,23 @@ const worker = createTxt2ImgWorker(); // ESM module worker via new URL('./host.t
 const client = new Txt2ImgWorkerClient(worker);
 ```
 
+Model IDs (strings)
+
+- `sd-turbo` — SD‑Turbo (ONNX Runtime Web)
+- `janus-pro-1b` — Janus‑Pro‑1B (Transformers.js)
+
+Programmatically enumerate supported models:
+
+```ts
+// Worker client
+const models = await client.listModels();
+// [{ id: 'sd-turbo', displayName: 'SD-Turbo …' }, { id: 'janus-pro-1b', … }]
+
+// Direct API (no worker)
+import { listSupportedModels } from 'web-txt2img';
+const models2 = listSupportedModels();
+```
+
 ---
 
 ## 5) Base (Direct) API
@@ -240,4 +257,3 @@ Janus‑Pro‑1B (Transformers.js)
 - Worker host: `src/worker/host.ts`
 - Worker client: `src/worker/client.ts`
 - Example app: `examples/minimal/`
-
