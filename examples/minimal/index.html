@@ -13,32 +13,63 @@
   </head>
   <body>
     <h1>web-txt2img — Minimal Example</h1>
-    <div class="row">
+
+    <!-- Row 1: Model + Load/Unload (+ Purge nearby) -->
+    <div class="row" id="model-row">
       <label>Model:
         <select id="model"></select>
       </label>
+      <button id="load">Load</button>
+      <button id="unload">Unload</button>
+      <button id="purge">Purge Cache</button>
+    </div>
+
+    <!-- Row 2: Capabilities -->
+    <div class="row" id="caps-row">
+      <strong>Capabilities:</strong> <span id="caps"></span>
+    </div>
+
+    <!-- Row 3: Prompt/Seed + Generate/Abort -->
+    <div class="row" id="gen-row">
       <label>Prompt:
         <input id="prompt" size="50" placeholder="A cute robot sketch, line art" />
       </label>
       <label>Seed (SD-Turbo only):
         <input id="seed" type="number" />
       </label>
-      <button id="load">Load</button>
       <button id="gen">Generate</button>
       <button id="abort" disabled>Abort</button>
-      <button id="unload">Unload</button>
-      <button id="purge">Purge Cache</button>
     </div>
+
+    <!-- Row 4: Progress -->
     <div id="progress-wrap">
       <div id="progress-line">Idle</div>
       <progress id="progress-bar" max="100" value="0" style="width: 420px;"></progress>
     </div>
-    <p>Capabilities: <span id="caps"></span></p>
-    <div id="log"></div>
-    <p><img id="out" /></p>
+
+    <!-- Row 5: Split view (logs left, image right) -->
+    <div id="split">
+      <div id="log-panel">
+        <div id="log"></div>
+      </div>
+      <div id="image-panel">
+        <img id="out" alt="Generated output" />
+      </div>
+    </div>
     <style>
       #progress-wrap { display: flex; gap: 12px; align-items: center; margin: 10px 0; }
       #progress-line { min-width: 260px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+      #split { display: flex; gap: 16px; align-items: flex-start; margin-top: 12px; }
+      #log-panel { flex: 0 0 40%; max-width: 40%; }
+      #image-panel { flex: 0 0 60%; max-width: 60%; }
+      #log { height: 460px; overflow: auto; }
+      #image-panel { display: flex; align-items: flex-start; justify-content: center; min-height: 460px; }
+      @media (max-width: 900px) {
+        #split { flex-direction: column; }
+        #log-panel, #image-panel { flex: none; max-width: 100%; width: 100%; }
+        #log { height: 280px; }
+        #image-panel { min-height: 0; }
+      }
     </style>
     <script type="module" src="./main.js"></script>
   </body>
