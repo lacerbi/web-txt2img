@@ -14,7 +14,7 @@ This README shows the recommended worker‑first integration for application dev
 
 ## Supported Models
 
-- **SD-Turbo (ONNX Runtime Web)** (`sd-turbo`)
+- **SD-Turbo (ONNX Runtime Web)** — `sd-turbo`  
   Fast single-step text-to-image model distilled from Stable Diffusion 2.1 using Adversarial Diffusion Distillation (ADD). Ideal for real-time generation in the browser.  
   - Task: text-to-image (single-step diffusion; the family supports ~1–4 steps).  
   - Backends: WebGPU → WebNN → WASM (auto-selected).  
@@ -22,11 +22,12 @@ This README shows the recommended worker‑first integration for application dev
   - Assets: UNet/VAE in ONNX; CLIP tokenization via Transformers.js.  
   - References: [Model card](https://huggingface.co/stabilityai/sd-turbo), [ADD report](https://stability.ai/research/adversarial-diffusion-distillation), [ORT WebGPU docs](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html).
 
-- **Janus-Pro-1B (Transformers.js)** (`janus-pro-1b`)
-  Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.  
+- **Janus-Pro-1B (Transformers.js)** — `janus-pro-1b`  
+  Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.
   - Task: text-to-image (limited; no seed/size controls).  
   - Backend: WebGPU (no WASM/WebNN path).  
   - Controls: `prompt` only.  
+  - See docs/DEVELOPER_GUIDE.md for details and limitations
   - References: [Paper](https://arxiv.org/html/2501.17811v1), [HF model](https://huggingface.co/deepseek-ai/Janus-Pro-1B), [ONNX community export](https://huggingface.co/onnx-community/Janus-Pro-1B-ONNX), [Repo](https://github.com/deepseek-ai/Janus).
 
 <details>
@@ -150,11 +151,6 @@ Then pass `wasmPaths: '/ort/'` when loading the model.
 
 Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM performance, serve with COOP/COEP headers (cross‑origin isolated) to enable threads.
 
-## Advanced Usage
-
-- The Worker host and protocol, as well as the underlying direct API, are documented in docs/DEVELOPER_GUIDE.md.
-- Includes dependency injection (custom ORT, tokenizer), custom model hosting, and full type references.
-
 ## API Overview (Worker)
 
 - Detect/backends/models: `client.detect()`, `client.listBackends()`, `client.listModels()`
@@ -162,16 +158,16 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 - Generation: `client.generate(params, onProgress?, { busyPolicy, replaceQueued, debounceMs }?)` returns `{ id, promise, abort }`
 - Queue semantics: single‑flight with single‑slot queue (latest wins by default)
 
-## Parameters & Semantics (SD‑Turbo)
+## Parameters & Semantics
 
 - `prompt`: required
-- `seed`: supported; deterministic where backend/drivers allow
+- `seed`: supported for `sd-turbo`; deterministic where backend/drivers allow
 - `width/height`: 512×512
-- Progress phases: `tokenizing → encoding → denoising → decoding → complete`
 
-## Janus‑Pro‑1B
+## Advanced Usage
 
-- WebGPU‑only. See docs/DEVELOPER_GUIDE.md for details and limitations.
+- The Worker host and protocol, as well as the underlying direct API, are documented in docs/DEVELOPER_GUIDE.md.
+- Includes dependency injection (custom ORT, tokenizer), custom model hosting, and full type references.
 
 ## Troubleshooting
 
