@@ -25,7 +25,8 @@ export class Txt2ImgWorkerClient {
 
   static createDefault(): Txt2ImgWorkerClient {
     // Use the canonical Vite-friendly pattern so the worker is bundled in builds.
-    const w = new Worker(new URL('./host.ts', import.meta.url), { type: 'module' });
+    // Publish-safe: point to .js; dev uses a shim at src/worker/host.js
+    const w = new Worker(new URL('./host.js', import.meta.url), { type: 'module' });
     return new Txt2ImgWorkerClient(w);
   }
 
@@ -116,5 +117,6 @@ export class Txt2ImgWorkerClient {
 }
 
 export function createTxt2ImgWorker(): Worker {
-  return new Worker(new URL('./host.ts', import.meta.url), { type: 'module' });
+  // Publish-safe: point to .js; dev uses a shim at src/worker/host.js
+  return new Worker(new URL('./host.js', import.meta.url), { type: 'module' });
 }
