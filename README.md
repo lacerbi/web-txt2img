@@ -9,18 +9,45 @@ This README shows the recommended worker‑first integration for application dev
 - Unified API: load a model, generate an image, unload, purge cache.
 - Backends: WebGPU (preferred), WebNN (opportunistic), WASM (fallback).
 - Progress + abort: phase updates and `AbortController` support.
-- SD‑Turbo: seeded generation (deterministic latents), 512×512 in v1.
+- SD‑Turbo: seeded generation (deterministic latents), 512×512 image size.
 - Cache aware: uses Cache Storage for model artifacts where possible.
 
-## Supported Models (v1)
+## Supported Models
 
-- SD‑Turbo (ONNX Runtime Web)
-  - Task: text‑to‑image (single‑step diffusion).
-  - Backends: WebGPU → WebNN → WASM.
-  - Seed: supported (deterministic best‑effort).
-  - Size: 512×512.
-- Janus-Pro-1B (Transformers.js)
-  - WebGPU only; seed/size controls not supported.
+- **SD-Turbo (ONNX Runtime Web)**  
+  Fast single-step text-to-image model distilled from Stable Diffusion 2.1 using Adversarial Diffusion Distillation (ADD). Ideal for real-time generation in the browser.  
+  - Task: text-to-image (single-step diffusion; the family supports ~1–4 steps).  
+  - Backends: WebGPU → WebNN → WASM (auto-selected).  
+  - Controls: `prompt`, `seed` (best-effort determinism), `width/height` = 512×512.  
+  - Assets: UNet/VAE in ONNX; CLIP tokenization via Transformers.js.  
+  - References: [Model card](https://huggingface.co/stabilityai/sd-turbo), [ADD report](https://stability.ai/research/adversarial-diffusion-distillation), [ORT WebGPU docs](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html).
+
+- **Janus-Pro-1B (Transformers.js)**  
+  Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.  
+  - Task: text-to-image (limited; no seed/size controls).  
+  - Backend: WebGPU (no WASM/WebNN path).  
+  - Controls: `prompt` only.  
+  - References: [Paper](https://arxiv.org/html/2501.17811v1), [HF model](https://huggingface.co/deepseek-ai/Janus-Pro-1B), [ONNX community export](https://huggingface.co/onnx-community/Janus-Pro-1B-ONNX), [Repo](https://github.com/deepseek-ai/Janus).
+
+<details>
+<summary>SD-Turbo & Janus-Pro-1B — Details & Tips</summary>
+
+### SD-Turbo — Details & Tips
+
+- **What it is.** A distilled Stable Diffusion 2.1 variant trained with **ADD** for single-step (turbo) synthesis; great for low-latency browser generation. See the model card and research report above.  
+- **Backends.** Prefer **WebGPU** for speed; WebNN and WASM serve as opportunistic/fallback paths. See the ORT WebGPU execution provider docs for capabilities and flags.  
+- **Determinism.** `seed` aims for deterministic latents, but cross-backend/driver differences can introduce small variations.  
+- **Demos & references.** Community demos show SD-Turbo running fully in-browser (e.g., ORT WebGPU SD-Turbo demo; WebNN SD-Turbo demo).  
+  - Example demos: [guschmue/ort-webgpu (SD-Turbo)](https://github.com/guschmue/ort-webgpu), [WebNN SD-Turbo demo](https://microsoft.github.io/webnn-developer-preview/demos/sd-turbo/).
+
+### Janus-Pro-1B — Details & Tips
+
+- **What it is.** A ~1B-parameter **autoregressive** unified multimodal model (“Janus-Pro”) from DeepSeek; research indicates improved text-to-image quality vs. earlier Janus.  
+- **Browser support.** **WebGPU-only** in this library’s adapter due to heavy shader workloads and memory usage.  
+- **Library note.** Use **Transformers.js** (v3+) in the browser. You can install the official package (`@huggingface/transformers`) or include it via a `<script>` tag to expose a global `transformers`. See the Transformers.js docs and examples for environment setup.  
+  - Docs: [Transformers.js installation](https://huggingface.co/docs/transformers.js/en/installation), [GitHub](https://github.com/huggingface/transformers.js).
+
+</details>
 
 ## Requirements
 
@@ -125,7 +152,7 @@ Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM p
 
 - `prompt`: required
 - `seed`: supported; deterministic where backend/drivers allow
-- `width/height`: 512×512 in v1
+- `width/height`: 512×512
 - Progress phases: `tokenizing → encoding → denoising → decoding → complete`
 
 ## Janus‑Pro‑1B Status
