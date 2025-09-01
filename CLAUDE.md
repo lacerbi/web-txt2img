@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-web-txt2img is a browser-only JavaScript/TypeScript library that generates images from text prompts using AI models (SD-Turbo, Janus-Pro-1B) running entirely client-side via WebGPU/WASM.
+web-txt2img is a browser-only JavaScript/TypeScript library that generates images from text prompts using AI models (SD-Turbo, Janus-Pro-1B) running entirely client-side via WebGPU.
 
 ## Commands
 
@@ -71,16 +71,18 @@ Key worker behaviors:
 Each AI model is implemented as an adapter (`src/adapters/`):
 - **Interface**: All adapters implement `ModelAdapter` from `types.ts`
 - **Registry**: `registry.ts` manages model metadata and factory functions
-- **SD-Turbo**: Uses ONNX Runtime Web, supports WebGPU/WASM backends
+- **SD-Turbo**: Uses ONNX Runtime Web with WebGPU backend (WASM exists in API but is experimental/untested)
 - **Janus-Pro-1B**: Uses Transformers.js, WebGPU-only
 
 ### Critical Implementation Details
 
-#### WASM Asset Handling
-ONNX Runtime Web requires serving WASM files. The example uses different strategies:
-- **Development**: Direct absolute paths to `node_modules/onnxruntime-web/dist/`
-- **Production**: Files copied to `public/ort/` via pre-build script
-- Set via `wasmPaths` option when loading SD-Turbo
+#### WebGPU Requirements
+All models require WebGPU support. Ensure browser compatibility:
+- Chrome/Edge 113+ with WebGPU enabled
+- Safari Technology Preview with WebGPU feature flag
+- Firefox Nightly with WebGPU enabled
+
+Note: While WASM fallback exists in the API, it is experimental and not recommended.
 
 #### Dynamic Dependency Loading
 The library uses dynamic imports for optional dependencies:
@@ -100,7 +102,7 @@ Standardized progress events with:
 ### SD-Turbo (`'sd-turbo'`)
 - Fixed 512×512 resolution
 - Seed support for deterministic generation
-- Backend preference: WebGPU → WASM
+- Backend: WebGPU (required for reliable operation)
 - ~2.34 GB total download
 
 ### Janus-Pro-1B (`'janus-pro-1b'`)
@@ -129,4 +131,4 @@ When modifying core functionality:
 1. **Result Types**: Functions return `{ ok: boolean, ... }` objects instead of throwing
 2. **Capability Detection**: Check browser features before attempting operations
 3. **Cache Management**: Models cached in browser Cache Storage, use `purge()` to clear
-4. **Backend Selection**: Pass ordered array of preferred backends, library auto-selects
+4. **Backend Selection**: Use WebGPU for all models - WASM fallback is experimental

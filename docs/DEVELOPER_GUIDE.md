@@ -8,7 +8,7 @@ This document defines the Worker protocol and client wrapper, explains policies 
 
 ## 1) Overview
 
-- All inference runs in the browser (WebGPU/WASM), no server required.
+- All inference runs in the browser (WebGPU), no server required.
 - Recommended entrypoint: the Worker client. It keeps heavy work off the main thread and provides robust UX semantics.
 - Direct API: still supported if you don’t need the Worker host (tests, custom hosts, specialized orchestration).
 
@@ -87,7 +87,7 @@ const client = Txt2ImgWorkerClient.createDefault();
 
 Methods
 
-- `detect(): Promise<{ webgpu; shaderF16; wasm }>`
+- `detect(): Promise<{ webgpu; shaderF16; wasm }>` (Note: WASM support is experimental)
 - `listModels(): Promise<ModelInfo[]>`
 - `listBackends(): Promise<BackendId[]>`
 - `load(model, options?, onProgress?)`
@@ -103,10 +103,8 @@ Usage example
 
 ```ts
 const loadRes = await client.load('sd-turbo', {
-  backendPreference: ['webgpu', 'wasm'],
-  wasmPaths: '/ort/',
-  wasmNumThreads: 4,
-  wasmSimd: true,
+  backendPreference: ['webgpu'], // WebGPU is required
+  // Note: WASM fallback exists in API but is experimental/untested
 }, (p) => console.log('load:', p));
 
 const { promise, abort } = client.generate(
@@ -154,7 +152,7 @@ const models2 = listSupportedModels();
 Exports from `packages/web-txt2img/src/index.ts`. Useful in tests or if running inside your own worker.
 
 - Capabilities and registry
-  - `detectCapabilities(): Promise<{ webgpu; shaderF16; wasm }>`
+  - `detectCapabilities(): Promise<{ webgpu; shaderF16; wasm }>` (Note: WASM is experimental)
   - `listBackends(): BackendId[]`
   - `listSupportedModels(): ModelInfo[]`
   - `getModelInfo(id): ModelInfo`
@@ -175,8 +173,8 @@ Important types: see `src/types.ts`.
 - Dependency injection & config
   - `ort?: any` (onnxruntime-web module instance)
   - `tokenizerProvider?: () => Promise<(text: string, opts?: any) => Promise<{ input_ids: number[] }>>`
-  - `wasmPaths?: string` (absolute recommended, e.g. `'/ort/'`)
-  - `wasmNumThreads?: number`, `wasmSimd?: boolean`
+  - `wasmPaths?: string` (for experimental WASM fallback only)
+  - `wasmNumThreads?: number`, `wasmSimd?: boolean` (for experimental WASM fallback only)
   - `modelBaseUrl?: string` (override default CDN for SD‑Turbo)
 
 `GenerateParams`
@@ -192,11 +190,11 @@ Important types: see `src/types.ts`.
 ## 6) Adapter‑Specific Notes
 
 SD‑Turbo (ONNX Runtime Web)
-- Backends: WebGPU → WASM (preference configurable)
+- Backend: WebGPU (required for reliable operation)
 - Size: 512×512 in v1; `seed` supported (deterministic best‑effort)
 - Progress phases: `tokenizing → encoding → denoising → decoding → complete`
-- WASM assets: must be served; pass `wasmPaths` to `load`
 - Worker canvas: uses `OffscreenCanvas` when `HTMLCanvasElement` is not available
+- Note: WASM fallback exists in API but is experimental and not recommended
 
 Janus‑Pro‑1B (Transformers.js)
 - Backends: WebGPU only
@@ -209,10 +207,8 @@ Janus‑Pro‑1B (Transformers.js)
 ## 7) Assets, Bundling, and Security
 
 - ESM Worker: created as `new Worker(new URL('./host.ts', import.meta.url), { type: 'module' })`. This pattern is recognized by Vite and other bundlers.
-- ONNX WASM assets:
-  - Recommended (dev and prod): copy ORT dist files to `public/ort/` in your app and pass `wasmPaths: '/ort/'`.
-  - Vite (advanced dev): use an absolute `/@fs/.../node_modules/onnxruntime-web/dist/` path for `wasmPaths`. The example app shows how to derive it safely with `require.resolve`.
-- COOP/COEP: serve with cross‑origin isolation to enable WASM threads for best performance.
+- WebGPU requirement: Ensure your users have WebGPU-enabled browsers (Chrome/Edge 113+, Safari Technology Preview, Firefox Nightly).
+- Note: While WASM assets configuration exists in the API for compatibility, it is experimental and not tested.
 - CSP: include appropriate `worker-src` and `connect-src` entries for your model hosting/CDN.
 
 ---
@@ -232,12 +228,12 @@ Janus‑Pro‑1B (Transformers.js)
 
 - SyntaxError: Unexpected reserved word
   - Ensure the Worker is created via `new Worker(new URL('./host.ts', import.meta.url), { type: 'module' })` so the bundler transpiles the Worker.
-- onnxruntime: both async and sync fetching of the wasm failed
-  - Set `wasmPaths` and make sure the WASM assets are hosted (dev: node_modules path; prod: `/ort/`).
+- "WebGPU is not supported" or "no available backend found"
+  - Ensure WebGPU is enabled in the browser. Use Chrome/Edge 113+ or other WebGPU-compatible browsers.
 - HTMLCanvasElement is not defined (in Worker)
   - Expected in Workers without DOM; adapters use `OffscreenCanvas` when `HTMLCanvasElement` is missing.
 - Slow performance
-  - Prefer WebGPU; for WASM enable SIMD/threads and set `wasmNumThreads`.
+  - Ensure WebGPU is enabled and GPU drivers are up to date. Check that hardware acceleration is not disabled in browser settings.
 
 ---
 
@@ -261,3 +257,126 @@ Janus‑Pro‑1B (Transformers.js)
 Type notes
 - `ModelInfo` includes optional size fields for UX: `sizeBytesApprox?`, `sizeGBApprox?`, `sizeNotes?`.
 - `LoadProgress` during downloads may include: `bytesDownloaded?`, `totalBytesExpected?`, `pct?`, and optionally `asset?`, `accuracy?`.
+
+---
+
+## 12) Experimental WASM Fallback (Not Recommended)
+
+> **⚠️ WARNING**: WASM support is experimental, untested, and not recommended for production use. This library is designed and optimized for WebGPU. The WASM fallback exists in the API primarily for compatibility reasons and may be removed in future versions. Use at your own risk.
+
+### Why You Shouldn't Use WASM
+
+- **Untested**: The WASM code paths have not been thoroughly tested
+- **Poor Performance**: Significantly slower than WebGPU (10-100x slower depending on hardware)
+- **Memory Issues**: May run out of memory on complex models
+- **No Active Development**: WASM support is not being actively maintained or improved
+
+### When WASM Might Be Considered
+
+Only consider WASM if ALL of the following apply:
+- Your target browsers absolutely cannot support WebGPU
+- You accept significantly degraded performance
+- You're willing to test and debug issues yourself
+- You understand this is experimental and unsupported
+
+### WASM Setup Instructions
+
+If you still need to experiment with WASM despite the warnings:
+
+#### 1. Install ONNX Runtime Web
+
+```bash
+npm i onnxruntime-web
+```
+
+#### 2. Serve WASM Assets
+
+ONNX Runtime Web needs to fetch runtime files (`ort-wasm*.wasm`, `*.jsep.mjs`).
+
+**Production Setup:**
+```bash
+# Copy WASM files to your public directory
+mkdir -p public/ort
+cp node_modules/onnxruntime-web/dist/ort-wasm*.* public/ort/
+```
+
+**Development Setup (Vite):**
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+let ortPkgPath = '';
+try { 
+  ortPkgPath = require.resolve('onnxruntime-web/package.json'); 
+} catch {}
+
+const ortDistFs = path.join(
+  ortPkgPath ? path.dirname(ortPkgPath) : path.resolve('node_modules/onnxruntime-web'), 
+  'dist'
+);
+const ORT_WASM_BASE_DEV = `/@fs/${ortDistFs}/`;
+
+export default defineConfig({
+  define: { 
+    __ORT_WASM_BASE_DEV__: JSON.stringify(ORT_WASM_BASE_DEV) 
+  },
+});
+```
+
+#### 3. Load Model with WASM Fallback
+
+```js
+// WASM fallback configuration (NOT RECOMMENDED)
+const wasmPaths = import.meta.env?.DEV 
+  ? __ORT_WASM_BASE_DEV__ 
+  : '/ort/';
+
+await client.load('sd-turbo', {
+  backendPreference: ['webgpu', 'wasm'], // Try WebGPU first, fall back to WASM
+  wasmPaths: wasmPaths,
+  wasmNumThreads: 4, // Adjust based on hardware
+  wasmSimd: true,
+}, onProgress);
+
+// Or force WASM-only (REALLY NOT RECOMMENDED)
+await client.load('sd-turbo', {
+  backendPreference: ['wasm'], // Force WASM only
+  wasmPaths: wasmPaths,
+  wasmNumThreads: navigator.hardwareConcurrency || 4,
+  wasmSimd: true,
+}, onProgress);
+```
+
+#### 4. WASM Performance Optimization
+
+If you must use WASM, these settings may help (but performance will still be poor):
+
+- **Enable SIMD**: Set `wasmSimd: true` (requires browser support)
+- **Configure Threads**: Set `wasmNumThreads` to 2-4 (more isn't always better)
+- **Enable Cross-Origin Isolation**: Serve with COOP/COEP headers for SharedArrayBuffer support
+  ```
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  ```
+
+### WASM Troubleshooting
+
+Common issues when using the experimental WASM fallback:
+
+- **"both async and sync fetching of the wasm failed"**
+  - WASM files not being served correctly. Check `wasmPaths` and file locations
+  
+- **Out of memory errors**
+  - WASM has memory limitations. Try reducing batch size or image resolution
+  
+- **Extremely slow performance**
+  - This is expected. WASM is 10-100x slower than WebGPU. Consider if you really need to support non-WebGPU browsers
+
+### Final Warning
+
+**We strongly recommend requiring WebGPU support instead of using WASM.** Modern browsers (Chrome/Edge 113+, Safari Technology Preview, Firefox Nightly) support WebGPU. The performance difference is dramatic, and the WASM fallback may be removed in future versions.
+
+If you encounter issues with WASM, please don't file bug reports unless you're also willing to contribute fixes, as WASM support is not actively maintained.

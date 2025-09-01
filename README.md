@@ -1,11 +1,11 @@
 # web-txt2img — Browser‑Only Text‑to‑Image Library
 
-A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It uses open-weights text-to-image generation models such as SD-Turbo and Janus-Pro-1B. It supports multiple backends (WebGPU, WASM) and models via pluggable adapters. Models are downloaded on-the-fly and stored locally.
+A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It uses open-weights text-to-image generation models such as SD-Turbo and Janus-Pro-1B, running on WebGPU via pluggable adapters. Models are downloaded on-the-fly and stored locally.
 
 ## Features
 
 - Unified API: load a model, generate an image, unload, purge cache.
-- Backends: WebGPU (preferred), WASM (fallback).
+- WebGPU-accelerated: Leverages modern GPU capabilities for fast inference.
 - Progress + abort: phase updates and `AbortController` support.
 - SD‑Turbo: seeded generation (deterministic latents), 512×512 image size.
 - Cache aware: uses Cache Storage for model artifacts where possible.
@@ -15,7 +15,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 - **SD-Turbo (ONNX Runtime Web)** — `sd-turbo`  
   Fast single-step text-to-image model distilled from Stable Diffusion 2.1 using Adversarial Diffusion Distillation (ADD). Ideal for real-time generation in the browser.  
   - Task: text-to-image (single-step diffusion; the family supports ~1–4 steps).  
-  - Backends: WebGPU → WASM (auto-selected).  
+  - Backend: WebGPU (WASM fallback exists but is experimental/untested).  
   - Controls: `prompt`, `seed` (best-effort determinism), `width/height` = 512×512.  
   - Assets: UNet/VAE in ONNX; CLIP tokenization via Transformers.js.  
   - References: [Model card](https://huggingface.co/stabilityai/sd-turbo), [ADD report](https://stability.ai/research/adversarial-diffusion-distillation), [ORT WebGPU docs](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html).
@@ -34,7 +34,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 ### SD-Turbo — Details & Tips
 
 - **What it is.** A distilled Stable Diffusion 2.1 variant trained with **ADD** for single-step (turbo) synthesis; great for low-latency browser generation. See the model card and research report above.  
-- **Backends.** Prefer **WebGPU** for speed; WASM serves as a fallback path. See the ORT WebGPU execution provider docs for capabilities and flags.  
+- **Backend.** Uses **WebGPU** for hardware acceleration. A WASM fallback exists in the API but is experimental and not recommended for production use.  
 - **Determinism.** `seed` aims for deterministic latents, but cross-backend/driver differences can introduce small variations.  
 - **Demos & references.** Community demos show SD-Turbo running fully in-browser with WebGPU acceleration.  
   - Example demo: [guschmue/ort-webgpu (SD-Turbo)](https://github.com/guschmue/ort-webgpu)
@@ -50,7 +50,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 
 ## Requirements
 
-- Modern browser. For WebGPU path, a WebGPU‑enabled browser (Chrome/Edge) and compatible GPU.
+- Modern WebGPU‑enabled browser (Chrome/Edge 113+, or browsers with WebGPU support) and compatible GPU.
 - No server required — all inference runs in the browser.
 
 ## Install
@@ -58,7 +58,8 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 Install the library and its peer runtime dependencies in your app:
 
 ```bash
-npm i web-txt2img onnxruntime-web @xenova/transformers
+npm i web-txt2img @xenova/transformers
+# Note: onnxruntime-web is optional, only needed if using experimental WASM fallback
 # or: pnpm add … / yarn add …
 ```
 
@@ -86,16 +87,12 @@ const client = Txt2ImgWorkerClient.createDefault();
 
 // 2) Optional: detect capabilities
 const caps = await client.detect();
-console.log('caps', caps); // { webgpu, shaderF16, wasm }
+console.log('caps', caps); // { webgpu, shaderF16, wasm } - Note: WASM support is experimental
 
-// 3) Load a model (SD‑Turbo prefers WebGPU, falls back to WASM)
+// 3) Load a model (SD‑Turbo uses WebGPU)
 const loadRes = await client.load('sd-turbo', {
-  backendPreference: ['webgpu', 'wasm'], // Try WebGPU first, fallback to WASM
-  // Or force a specific backend: ['wasm'] for WASM-only, ['webgpu'] for WebGPU-only
-  // Tell ONNX Runtime where to find WASM runtime files (see "WASM Assets")
-  wasmPaths: '/ort/',
-  wasmNumThreads: 4,
-  wasmSimd: true,
+  backendPreference: ['webgpu'], // WebGPU is required for reliable operation
+  // Note: WASM fallback exists in API but is experimental/untested
 }, (p) => console.log('load:', p));
 if (!loadRes?.ok) throw new Error(loadRes?.message ?? 'load failed');
 
@@ -133,22 +130,22 @@ const models = await client.listModels();
 // [{ id: 'sd-turbo', displayName: 'SD-Turbo …' }, { id: 'janus-pro-1b', … }]
 ```
 
-## WASM Assets (important for bundlers)
+## WebGPU Requirements
 
-ONNX Runtime Web needs to fetch its runtime files (`ort-wasm*.wasm`, `*.jsep.mjs`). You must ensure they are served and tell ORT where they live via `wasmPaths`.
+This library requires WebGPU support in your browser. Check browser compatibility:
+- Chrome/Edge 113+ with WebGPU enabled
+- Safari Technology Preview with WebGPU feature flag
+- Firefox Nightly with WebGPU enabled
 
-Common setups:
-- Recommended (dev and prod): copy files to your public folder and serve at `/ort/`, then set `wasmPaths: '/ort/'`.
-- Vite (advanced): in dev, point `wasmPaths` to the package dist via an absolute `/@fs/.../node_modules/onnxruntime-web/dist/` path. See `examples/vanilla-worker/vite.config.ts` for a robust way to compute this.
-
-Example copy (production):
-```bash
-mkdir -p public/ort
-cp node_modules/onnxruntime-web/dist/ort-wasm*.* public/ort/
+You can verify WebGPU support programmatically:
+```js
+const caps = await client.detect();
+if (!caps.webgpu) {
+  console.error('WebGPU not supported in this browser');
+}
 ```
-Then pass `wasmPaths: '/ort/'` when loading the model.
 
-Tip: Configure threads/SIMD via `wasmNumThreads` and `wasmSimd`. For best WASM performance, serve with COOP/COEP headers (cross‑origin isolated) to enable threads.
+> Note: While a WASM fallback exists in the API for compatibility, it is experimental, untested, and not recommended for production use. The library is designed and optimized for WebGPU.
 
 ## API Overview (Worker)
 
@@ -180,41 +177,23 @@ Practical snippets distilled from `examples/vanilla-worker` so you don’t have 
 <details>
 <summary>Show Recipes</summary>
 
-### 1) Dev vs. Prod WASM paths (Vite)
+### 1) Loading Models with WebGPU
 
-Use the ONNX Runtime Web WASM assets directly from `node_modules` in **dev**, and from `/public/ort/` in **prod**.
-
-```ts
-// vite.config.ts — expose a dev-only absolute path to ORT's dist folder
-import { defineConfig } from 'vite';
-import path from 'node:path';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-let ortPkgPath = '';
-try { ortPkgPath = require.resolve('onnxruntime-web/package.json'); } catch {}
-const ortDistFs = path.join(ortPkgPath ? path.dirname(ortPkgPath) : path.resolve('node_modules/onnxruntime-web'), 'dist');
-const ORT_WASM_BASE_DEV = `/@fs/${ortDistFs}/`;
-
-export default defineConfig({
-  define: { __ORT_WASM_BASE_DEV__: JSON.stringify(ORT_WASM_BASE_DEV) },
-});
-```
+Both SD-Turbo and Janus-Pro-1B use WebGPU for acceleration:
 
 ```js
-// When loading SD-Turbo
-const isJanus = model === 'janus-pro-1b';
-const wasmPaths = isJanus ? undefined
-  : (import.meta.env?.DEV ? __ORT_WASM_BASE_DEV__ : (import.meta.env.BASE_URL || '/') + 'ort/');
+// Load SD-Turbo
+await client.load('sd-turbo', {
+  backendPreference: ['webgpu'], // WebGPU required
+}, onProgress);
 
-await client.load(model, {
-  backendPreference: isJanus ? ['webgpu'] : ['webgpu', 'wasm'],
-  ...(wasmPaths ? { wasmPaths } : {}),
-  ...(wasmPaths ? { wasmNumThreads: Math.min(4, navigator.hardwareConcurrency ?? 2) } : {}),
-  ...(wasmPaths ? { wasmSimd: true } : {}),
+// Load Janus-Pro-1B (WebGPU-only model)
+await client.load('janus-pro-1b', {
+  backendPreference: ['webgpu'],
 }, onProgress);
 ```
 
-> Production: copy the ORT files into `public/ort/` (e.g., via a small script) and serve them. See “WASM Assets” above for the one-liner `cp` command.
+> Note: Ensure your browser supports WebGPU before loading models. Use `client.detect()` to verify.
 
 ### 2) Progress UI wiring (standardized fields)
 
@@ -291,7 +270,7 @@ if (res.ok) {
 
 ### 5) Janus-Pro-1B quick checklist
 
-* **WebGPU-only** (no WASM fallback in this adapter).
+* **WebGPU-only**.
 * Ensure `@huggingface/transformers` is available:
 
   * **Bundled:** `npm i @huggingface/transformers` and import normally.
@@ -326,8 +305,7 @@ Point to your own CDN and (optionally) inject a tokenizer to avoid bundling `@xe
 
 ```js
 await client.load('sd-turbo', {
-  backendPreference: ['webgpu', 'wasm'],
-  wasmPaths: '/ort/',
+  backendPreference: ['webgpu'],
   modelBaseUrl: 'https://my-cdn.example.com/sd-turbo-ort-web',
   tokenizerProvider: async () => {
     const { AutoTokenizer } = await import('@xenova/transformers');
@@ -353,12 +331,12 @@ await client.purgeAll();// purge all web-txt2img caches
 
 ## Troubleshooting
 
-- Error: “no available backend found … both async and sync fetching of the wasm failed”
-  - Your app isn’t serving ORT WASM files. Set `wasmPaths` and make sure assets are hosted (see “WASM Assets”).
+- Error: "WebGPU is not supported" or "no available backend found"
+  - Your browser doesn't support WebGPU. Use a compatible browser (Chrome/Edge 113+, Safari Technology Preview, or Firefox Nightly with WebGPU enabled).
 - Vite complains about dynamic imports of optional deps
   - The library uses computed specifiers and `/* @vite-ignore */` where needed. If your bundler still pre‑bundles optional deps, either install them or inject via options.
 - Performance is slow
-  - Prefer WebGPU. For WASM, enable SIMD/threads (COOP/COEP) and increase `wasmNumThreads`.
+  - Ensure WebGPU is enabled in your browser and GPU drivers are up to date. Verify hardware acceleration is not disabled in browser settings.
 
 ## Acknowledgements
 

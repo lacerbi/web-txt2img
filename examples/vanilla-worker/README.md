@@ -10,13 +10,11 @@ Dev setup
 
 Notes
 
-- WebGPU is preferred (backendPreference ['webgpu','wasm']); falls back to WASM.
+- WebGPU is required for all models (backendPreference ['webgpu']).
 - Uses the Worker client (`Txt2ImgWorkerClient.createDefault()`), offloading generation to a module worker with single‑flight + single‑slot queue.
-- WASM assets (onnxruntime-web) are served differently in dev vs prod:
-  - Dev (Vite): the app points `wasmPaths` to the package dist folder via an absolute `/@fs/.../node_modules/onnxruntime-web/dist/` path (no import from `/public`).
-  - Prod: assets are copied to `public/ort/` and the app points `wasmPaths` to `${import.meta.env.BASE_URL}ort/`.
-- For best WASM performance: serve with COOP/COEP headers to enable threads.
-- Janus-Pro-1B requires WebGPU and `@huggingface/transformers` installed.
+- Both SD-Turbo and Janus-Pro-1B require WebGPU-enabled browsers (Chrome/Edge 113+).
+- Janus-Pro-1B additionally requires `@huggingface/transformers` installed.
+- Note: While WASM fallback exists in the API, it is experimental and not tested.
 
 GitHub Pages
 

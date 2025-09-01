@@ -16,7 +16,6 @@
     "janus-pro",
     "onnxruntime-web",
     "webgpu",
-    "webnn",
     "wasm",
     "transformers.js",
     "in-browser",
