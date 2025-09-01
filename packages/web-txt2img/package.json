@@ -62,6 +62,7 @@
     "@huggingface/transformers": "^3" 
   },
   "peerDependenciesMeta": {
+    "onnxruntime-web": { "optional": true },
     "@xenova/transformers": { "optional": true },
     "@huggingface/transformers": { "optional": true }
   },
