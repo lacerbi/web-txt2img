@@ -235,6 +235,33 @@ Janus‑Pro‑1B (Transformers.js)
 - Slow performance
   - Ensure WebGPU is enabled and GPU drivers are up to date. Check that hardware acceleration is not disabled in browser settings.
 
+### Tokenizer Loading Fix (Historical)
+
+**Issue**: In production builds, SD-Turbo's tokenizer would fail with `SyntaxError: Unexpected token '<'` because it tried to load from `http://localhost:PORT/models/` instead of Hugging Face's CDN, receiving an HTML 404 page.
+
+**Root Cause**: The `@xenova/transformers` library was being imported at module level before its environment could be configured, causing it to initialize with `allowLocalModels: true` and attempt local loading first.
+
+**Solution**: Configure the transformers.js environment immediately after import:
+
+```javascript
+// In main.js or entry point
+import { env } from '@xenova/transformers';
+
+// Force remote loading from Hugging Face CDN
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+env.remoteHost = 'https://huggingface.co/';
+env.remotePathTemplate = '{model}/resolve/{revision}/';
+env.useBrowserCache = true;
+```
+
+**Defensive Measures**: The SD-Turbo adapter also includes defensive configuration to ensure proper remote loading even if the main configuration is missed:
+- Configures `env` when using global `AutoTokenizer`
+- Configures `env` when dynamically importing transformers modules
+- Passes explicit options to `from_pretrained()` to force remote loading
+
+This fix ensures tokenizers always load from the correct CDN in production builds.
+
 ---
 
 ## 10) Recommendations
