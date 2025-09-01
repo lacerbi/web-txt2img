@@ -23,7 +23,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 - **Janus-Pro-1B (Transformers.js)** — `janus-pro-1b`  
   Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.
   - Task: text-to-image (limited; no seed/size controls).  
-  - Backend: WebGPU only (no WASM fallback).  
+  - Backend: WebGPU-centric with a small WASM component.
   - Controls: `prompt` only.  
   - See docs/DEVELOPER_GUIDE.md for details and limitations
   - References: [Paper](https://arxiv.org/html/2501.17811v1), [HF model](https://huggingface.co/deepseek-ai/Janus-Pro-1B), [ONNX community export](https://huggingface.co/onnx-community/Janus-Pro-1B-ONNX), [Repo](https://github.com/deepseek-ai/Janus).
@@ -42,7 +42,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 ### Janus-Pro-1B — Details & Tips
 
 - **What it is.** A ~1B-parameter **autoregressive** unified multimodal model (“Janus-Pro”) from DeepSeek; research indicates improved text-to-image quality vs. earlier Janus.  
-- **Browser support.** **WebGPU-only** in this library’s adapter due to heavy shader workloads and memory usage.  
+- **Browser support.** **WebGPU-only** in this library’s adapter due to heavy shader workloads and memory usage. A small prepare-inputs stage temporarily uses WASM due to an upstream issue.
 - **Library note.** Use **Transformers.js** (v3+) in the browser. You can install the official package (`@huggingface/transformers`) or include it via a `<script>` tag to expose a global `transformers`. See the Transformers.js docs and examples for environment setup.  
   - Docs: [Transformers.js installation](https://huggingface.co/docs/transformers.js/en/installation), [GitHub](https://github.com/huggingface/transformers.js).
 
@@ -347,7 +347,7 @@ This library’s design and adapters were inspired by prior work:
 
 - **ONNX Runtime Web SD-Turbo browser example**  
   https://github.com/microsoft/onnxruntime-inference-examples/tree/main/js/sd-turbo
-  ((live demo)[https://guschmue.github.io/ort-webgpu/sd-turbo/index.html])
+  [(live demo)](https://guschmue.github.io/ort-webgpu/sd-turbo/index.html)
 
 This library was written using [Codex CLI](https://developers.openai.com/codex/cli/).
 
