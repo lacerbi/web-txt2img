@@ -370,24 +370,76 @@ async function getTokenizer(): Promise<any> {
   // Prefer a global AutoTokenizer (if host app preloaded it), else dynamic import.
   const g: any = globalThis as any;
   if (g.AutoTokenizer && typeof g.AutoTokenizer.from_pretrained === 'function') {
+    // Configure global transformers env if available
+    if (g.env) {
+      g.env.allowLocalModels = false;  // CRITICAL: Disable local model loading
+      g.env.allowRemoteModels = true;
+      g.env.remoteHost = 'https://huggingface.co/';
+      g.env.remotePathTemplate = '{model}/resolve/{revision}/';
+    }
     _tokInstance = await g.AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
     _tokInstance.pad_token_id = 0;
     return (text: string, opts: any) => _tokInstance(text, opts);
   }
   let AutoTokenizerMod: any = null;
+  let env: any = null;
   try {
     const mod = await import('@xenova/transformers');
     AutoTokenizerMod = (mod as any).AutoTokenizer;
-  } catch {
+    env = (mod as any).env;
+  } catch (e1) {
+    console.error('[DEBUG] Failed to import @xenova/transformers:', e1);
     try {
       // Try HuggingFace transformers as fallback with literal import
       const mod2 = await import('@huggingface/transformers');
       AutoTokenizerMod = (mod2 as any).AutoTokenizer;
-    } catch {
+      env = (mod2 as any).env;
+    } catch (e2) {
+      console.error('[DEBUG] Failed to import @huggingface/transformers:', e2);
       throw new Error('Failed to load a tokenizer. Install @xenova/transformers or provide tokenizerProvider in loadModel options.');
     }
   }
-  _tokInstance = await AutoTokenizerMod.from_pretrained('Xenova/clip-vit-base-patch16');
+  
+  // Configure transformers to use Hugging Face CDN explicitly
+  // This fixes issues where relative URLs fail in production builds
+  console.log('[DEBUG] env before config:', JSON.stringify({
+    allowLocalModels: env?.allowLocalModels,
+    allowRemoteModels: env?.allowRemoteModels,
+    remoteHost: env?.remoteHost,
+    localModelPath: env?.localModelPath,
+    remotePathTemplate: env?.remotePathTemplate
+  }));
+  
+  if (env) {
+    env.allowLocalModels = false;  // CRITICAL: Disable local model loading
+    env.allowRemoteModels = true;
+    env.remoteHost = 'https://huggingface.co/';
+    env.remotePathTemplate = '{model}/resolve/{revision}/';
+    // ALSO try to clear any cache
+    env.useBrowserCache = false;  // Disable cache to force fresh fetch
+  }
+  
+  console.log('[DEBUG] env after config:', JSON.stringify({
+    allowLocalModels: env?.allowLocalModels,
+    allowRemoteModels: env?.allowRemoteModels,
+    remoteHost: env?.remoteHost,
+    localModelPath: env?.localModelPath,
+    remotePathTemplate: env?.remotePathTemplate,
+    useBrowserCache: env?.useBrowserCache
+  }));
+  
+  console.log('[DEBUG] About to call from_pretrained...');
+  try {
+    _tokInstance = await AutoTokenizerMod.from_pretrained('Xenova/clip-vit-base-patch16', {
+      // Force remote loading with explicit options
+      local_files_only: false,
+      revision: 'main'
+    });
+    console.log('[DEBUG] from_pretrained succeeded!');
+  } catch (err) {
+    console.error('[DEBUG] from_pretrained failed:', err);
+    throw err;
+  }
   _tokInstance.pad_token_id = 0;
   return (text: string, opts: any) => _tokInstance(text, opts);
 }
