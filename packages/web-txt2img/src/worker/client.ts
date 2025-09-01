@@ -64,7 +64,7 @@ export class Txt2ImgWorkerClient {
     });
   }
 
-  async detect(): Promise<{ webgpu: boolean; shaderF16: boolean; webnn: boolean; wasm: boolean }> {
+  async detect(): Promise<{ webgpu: boolean; shaderF16: boolean; wasm: boolean }> {
     const res: any = await this.send({ id: uid(), kind: 'detect' });
     return res.data;
   }

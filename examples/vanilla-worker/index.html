@@ -654,7 +654,14 @@
             <div class="select-wrapper">
               <select id="model"></select>
             </div>
-            <div class="btn-group">
+            <div class="select-wrapper" style="margin-top: 0.5rem;">
+              <select id="backend">
+                <option value="auto">Backend: Auto-select</option>
+                <option value="webgpu">Backend: WebGPU only</option>
+                <option value="wasm">Backend: WASM only</option>
+              </select>
+            </div>
+            <div class="btn-group" style="margin-top: 0.5rem;">
               <button id="model-info" class="btn btn-secondary" title="Show model info">
                 <span>Info</span>
               </button>

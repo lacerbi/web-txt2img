@@ -64,20 +64,46 @@ async function init() {
 
   $('load').onclick = async () => {
     const model = sel.value;
-    log(`Loading: ${model}`);
+    const backendChoice = $('backend').value;
+    log(`Loading: ${model} with backend: ${backendChoice}`);
+    
     // Configure backends and assets per model
     const isJanus = model === 'janus-pro-1b';
+    
+    // Determine backend preference based on user selection
+    let backendPreference;
+    if (backendChoice === 'auto') {
+      backendPreference = isJanus ? ['webgpu'] : ['webgpu', 'wasm'];
+    } else {
+      // Force specific backend
+      backendPreference = [backendChoice];
+    }
+    
+    // Janus only supports WebGPU
+    if (isJanus && backendChoice !== 'auto' && backendChoice !== 'webgpu') {
+      log(`Warning: Janus-Pro-1B only supports WebGPU. Switching to WebGPU.`);
+      backendPreference = ['webgpu'];
+    }
+    
     const wasmPaths = isJanus ? undefined : (import.meta.env && import.meta.env.DEV
       ? __ORT_WASM_BASE_DEV__
       : (import.meta.env.BASE_URL || '/') + 'ort/');
+    
     const res = await client.load(model, {
-      backendPreference: isJanus ? ['webgpu'] : ['webgpu', 'wasm'],
+      backendPreference,
       ...(wasmPaths ? { wasmPaths } : {}),
       ...(wasmPaths ? { wasmNumThreads: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2 } : {}),
       ...(wasmPaths ? { wasmSimd: true } : {}),
     }, (p) => setProgress(p));
+    
     log(`Load result: ${JSON.stringify(res)}`);
-    if (res?.ok) { loadedModels.add(model); loadedDetails.set(model, { backendUsed: res.backendUsed, bytesDownloaded: res.bytesDownloaded }); }
+    if (res?.ok) { 
+      loadedModels.add(model); 
+      loadedDetails.set(model, { backendUsed: res.backendUsed, bytesDownloaded: res.bytesDownloaded });
+      log(`Successfully loaded with backend: ${res.backendUsed}`);
+    } else {
+      log(`Failed to load: ${res?.message || 'Unknown error'}`);
+    }
     setProgress({ message: 'Ready', pct: 100 });
   };
 

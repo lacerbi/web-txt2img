@@ -11,11 +11,10 @@ export async function detectCapabilities(): Promise<Capabilities> {
       shaderF16 = false;
     }
   }
-  const webnn = typeof navigator !== 'undefined' && 'ml' in navigator;
   const wasm = true;
-  return { webgpu: hasWebGPU, shaderF16, webnn, wasm };
+  return { webgpu: hasWebGPU, shaderF16, wasm };
 }
 
-export function listBackends(): Array<'webgpu' | 'webnn' | 'wasm'> {
-  return ['webgpu', 'webnn', 'wasm'];
+export function listBackends(): Array<'webgpu' | 'wasm'> {
+  return ['webgpu', 'wasm'];
 }

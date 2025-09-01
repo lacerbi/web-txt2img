@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-web-txt2img is a browser-only JavaScript/TypeScript library that generates images from text prompts using AI models (SD-Turbo, Janus-Pro-1B) running entirely client-side via WebGPU/WebNN/WASM.
+web-txt2img is a browser-only JavaScript/TypeScript library that generates images from text prompts using AI models (SD-Turbo, Janus-Pro-1B) running entirely client-side via WebGPU/WASM.
 
 ## Commands
 
@@ -71,7 +71,7 @@ Key worker behaviors:
 Each AI model is implemented as an adapter (`src/adapters/`):
 - **Interface**: All adapters implement `ModelAdapter` from `types.ts`
 - **Registry**: `registry.ts` manages model metadata and factory functions
-- **SD-Turbo**: Uses ONNX Runtime Web, supports WebGPU/WebNN/WASM backends
+- **SD-Turbo**: Uses ONNX Runtime Web, supports WebGPU/WASM backends
 - **Janus-Pro-1B**: Uses Transformers.js, WebGPU-only
 
 ### Critical Implementation Details
@@ -100,7 +100,7 @@ Standardized progress events with:
 ### SD-Turbo (`'sd-turbo'`)
 - Fixed 512×512 resolution
 - Seed support for deterministic generation
-- Backend preference: WebGPU → WebNN → WASM
+- Backend preference: WebGPU → WASM
 - ~2.34 GB total download
 
 ### Janus-Pro-1B (`'janus-pro-1b'`)

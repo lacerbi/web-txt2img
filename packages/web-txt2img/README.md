@@ -1,6 +1,6 @@
 # web-txt2img
 
-Generate images from text prompts directly in the browser using open-weights AI models. No server required - all inference runs locally using WebGPU, WebNN, or WebAssembly.
+Generate images from text prompts directly in the browser using open-weights AI models. No server required - all inference runs locally using WebGPU or WebAssembly.
 
 ## Features
 
@@ -29,10 +29,16 @@ import { Txt2ImgWorkerClient } from 'web-txt2img';
 // Create worker client
 const client = Txt2ImgWorkerClient.createDefault();
 
-// Load SD-Turbo model
+// Load SD-Turbo model (auto-select best backend)
 await client.load('sd-turbo', { 
   backendPreference: ['webgpu', 'wasm'],
   wasmPaths: '/ort/' // Important: serve ONNX Runtime WASM files here
+});
+
+// Or force a specific backend for testing
+await client.load('sd-turbo', { 
+  backendPreference: ['wasm'], // Force WASM only
+  wasmPaths: '/ort/'
 });
 
 // Generate image
@@ -61,7 +67,9 @@ Then set `wasmPaths: '/ort/'` when loading the model.
 ## Supported Models
 
 - **`sd-turbo`** - Fast single-step diffusion (512×512, ~2.3GB download)
-- **`janus-pro-1b`** - Higher quality autoregressive (WebGPU only, ~2.2GB)
+  - Backends: WebGPU, WASM (auto-selected or forced)
+- **`janus-pro-1b`** - Higher quality autoregressive (~2.2GB)
+  - Backend: WebGPU only (no WASM fallback)
 
 ## Documentation
 

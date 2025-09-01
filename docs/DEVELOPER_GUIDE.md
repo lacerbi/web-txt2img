@@ -8,7 +8,7 @@ This document defines the Worker protocol and client wrapper, explains policies 
 
 ## 1) Overview
 
-- All inference runs in the browser (WebGPU/WebNN/WASM), no server required.
+- All inference runs in the browser (WebGPU/WASM), no server required.
 - Recommended entrypoint: the Worker client. It keeps heavy work off the main thread and provides robust UX semantics.
 - Direct API: still supported if you don’t need the Worker host (tests, custom hosts, specialized orchestration).
 
@@ -87,7 +87,7 @@ const client = Txt2ImgWorkerClient.createDefault();
 
 Methods
 
-- `detect(): Promise<{ webgpu; shaderF16; webnn; wasm }>`
+- `detect(): Promise<{ webgpu; shaderF16; wasm }>`
 - `listModels(): Promise<ModelInfo[]>`
 - `listBackends(): Promise<BackendId[]>`
 - `load(model, options?, onProgress?)`
@@ -154,7 +154,7 @@ const models2 = listSupportedModels();
 Exports from `packages/web-txt2img/src/index.ts`. Useful in tests or if running inside your own worker.
 
 - Capabilities and registry
-  - `detectCapabilities(): Promise<{ webgpu; shaderF16; webnn; wasm }>`
+  - `detectCapabilities(): Promise<{ webgpu; shaderF16; wasm }>`
   - `listBackends(): BackendId[]`
   - `listSupportedModels(): ModelInfo[]`
   - `getModelInfo(id): ModelInfo`
@@ -192,7 +192,7 @@ Important types: see `src/types.ts`.
 ## 6) Adapter‑Specific Notes
 
 SD‑Turbo (ONNX Runtime Web)
-- Backends: WebGPU → WebNN → WASM (preference configurable)
+- Backends: WebGPU → WASM (preference configurable)
 - Size: 512×512 in v1; `seed` supported (deterministic best‑effort)
 - Progress phases: `tokenizing → encoding → denoising → decoding → complete`
 - WASM assets: must be served; pass `wasmPaths` to `load`

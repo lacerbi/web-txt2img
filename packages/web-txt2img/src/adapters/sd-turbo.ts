@@ -31,7 +31,6 @@ export class SDTurboAdapter implements Adapter {
   checkSupport(c: Capabilities): BackendId[] {
     const backends: BackendId[] = [];
     if (c.webgpu) backends.push('webgpu');
-    if (c.webnn) backends.push('webnn');
     // WASM is assumed available
     backends.push('wasm');
     return backends;
@@ -39,7 +38,7 @@ export class SDTurboAdapter implements Adapter {
 
   async load(options: Required<Pick<LoadOptions, 'backendPreference'>> & LoadOptions): Promise<LoadResult> {
     const preferred = options.backendPreference;
-    const supported = ['webgpu', 'webnn', 'wasm'] as BackendId[];
+    const supported = ['webgpu', 'wasm'] as BackendId[];
     let chosen = preferred.find((b) => supported.includes(b));
     if (!chosen) return { ok: false, reason: 'backend_unavailable', message: 'No viable backend for SD-Turbo' };
 
@@ -55,7 +54,7 @@ export class SDTurboAdapter implements Adapter {
         if (chosen === 'webgpu') {
           ortMod = await import('onnxruntime-web/webgpu').catch(() => null);
         } else {
-          // WebNN and WASM share the default entry; provider chosen via options
+          // WASM uses the default entry
           ortMod = await import('onnxruntime-web').catch(() => null);
         }
         ort = ortMod && (ortMod.default ?? ortMod);
@@ -79,7 +78,7 @@ export class SDTurboAdapter implements Adapter {
 
       const ort = this.ort!;
       const opt: any = {
-        executionProviders: [chosen === 'webnn' ? { name: 'webnn', deviceType: 'gpu', powerPreference: 'default' } : chosen],
+        executionProviders: [chosen],
         enableMemPattern: false,
         enableCpuMemArena: false,
         extra: {

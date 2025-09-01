@@ -7,7 +7,7 @@ const REGISTRY: RegistryEntry[] = [
     id: 'sd-turbo',
     displayName: 'SD-Turbo (ONNX Runtime Web)',
     task: 'text-to-image',
-    supportedBackends: ['webgpu', 'webnn', 'wasm'],
+    supportedBackends: ['webgpu', 'wasm'],
     notes: '512×512 only in v1; seed supported.',
     sizeBytesApprox: 2398 * 1024 * 1024,
     sizeGBApprox: 2.34,
@@ -47,7 +47,7 @@ export function getRegistryEntry(id: ModelId): RegistryEntry {
 export function defaultBackendPreferenceFor(id: ModelId): BackendId[] {
   switch (id) {
     case 'sd-turbo':
-      return ['webgpu', 'webnn', 'wasm'];
+      return ['webgpu', 'wasm'];
     case 'janus-pro-1b':
       return ['webgpu'];
   }

@@ -1,11 +1,11 @@
 # web-txt2img — Browser‑Only Text‑to‑Image Library
 
-A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It uses open-weights text-to-image generation models such as SD-Turbo and Janus-Pro-1B. It supports multiple backends (WebGPU, WebNN, WASM) and models via pluggable adapters. Models are downloaded on-the-fly and stored locally.
+A lightweight, browser‑only JavaScript/TypeScript library that provides a unified API to generate images from text prompts in the browser. It uses open-weights text-to-image generation models such as SD-Turbo and Janus-Pro-1B. It supports multiple backends (WebGPU, WASM) and models via pluggable adapters. Models are downloaded on-the-fly and stored locally.
 
 ## Features
 
 - Unified API: load a model, generate an image, unload, purge cache.
-- Backends: WebGPU (preferred), WebNN (opportunistic), WASM (fallback).
+- Backends: WebGPU (preferred), WASM (fallback).
 - Progress + abort: phase updates and `AbortController` support.
 - SD‑Turbo: seeded generation (deterministic latents), 512×512 image size.
 - Cache aware: uses Cache Storage for model artifacts where possible.
@@ -15,7 +15,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 - **SD-Turbo (ONNX Runtime Web)** — `sd-turbo`  
   Fast single-step text-to-image model distilled from Stable Diffusion 2.1 using Adversarial Diffusion Distillation (ADD). Ideal for real-time generation in the browser.  
   - Task: text-to-image (single-step diffusion; the family supports ~1–4 steps).  
-  - Backends: WebGPU → WebNN → WASM (auto-selected).  
+  - Backends: WebGPU → WASM (auto-selected).  
   - Controls: `prompt`, `seed` (best-effort determinism), `width/height` = 512×512.  
   - Assets: UNet/VAE in ONNX; CLIP tokenization via Transformers.js.  
   - References: [Model card](https://huggingface.co/stabilityai/sd-turbo), [ADD report](https://stability.ai/research/adversarial-diffusion-distillation), [ORT WebGPU docs](https://onnxruntime.ai/docs/tutorials/web/ep-webgpu.html).
@@ -23,7 +23,7 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 - **Janus-Pro-1B (Transformers.js)** — `janus-pro-1b`  
   Autoregressive, unified multimodal model (any-to-any). In this library, only image generation is exposed. WebGPU-only.
   - Task: text-to-image (limited; no seed/size controls).  
-  - Backend: WebGPU (no WASM/WebNN path).  
+  - Backend: WebGPU only (no WASM fallback).  
   - Controls: `prompt` only.  
   - See docs/DEVELOPER_GUIDE.md for details and limitations
   - References: [Paper](https://arxiv.org/html/2501.17811v1), [HF model](https://huggingface.co/deepseek-ai/Janus-Pro-1B), [ONNX community export](https://huggingface.co/onnx-community/Janus-Pro-1B-ONNX), [Repo](https://github.com/deepseek-ai/Janus).
@@ -34,10 +34,10 @@ A lightweight, browser‑only JavaScript/TypeScript library that provides a unif
 ### SD-Turbo — Details & Tips
 
 - **What it is.** A distilled Stable Diffusion 2.1 variant trained with **ADD** for single-step (turbo) synthesis; great for low-latency browser generation. See the model card and research report above.  
-- **Backends.** Prefer **WebGPU** for speed; WebNN and WASM serve as opportunistic/fallback paths. See the ORT WebGPU execution provider docs for capabilities and flags.  
+- **Backends.** Prefer **WebGPU** for speed; WASM serves as a fallback path. See the ORT WebGPU execution provider docs for capabilities and flags.  
 - **Determinism.** `seed` aims for deterministic latents, but cross-backend/driver differences can introduce small variations.  
-- **Demos & references.** Community demos show SD-Turbo running fully in-browser (e.g., ORT WebGPU SD-Turbo demo; WebNN SD-Turbo demo).  
-  - Example demos: [guschmue/ort-webgpu (SD-Turbo)](https://github.com/guschmue/ort-webgpu), [WebNN SD-Turbo demo](https://microsoft.github.io/webnn-developer-preview/demos/sd-turbo/).
+- **Demos & references.** Community demos show SD-Turbo running fully in-browser with WebGPU acceleration.  
+  - Example demo: [guschmue/ort-webgpu (SD-Turbo)](https://github.com/guschmue/ort-webgpu)
 
 ### Janus-Pro-1B — Details & Tips
 
@@ -86,12 +86,13 @@ const client = Txt2ImgWorkerClient.createDefault();
 
 // 2) Optional: detect capabilities
 const caps = await client.detect();
-console.log('caps', caps); // { webgpu, shaderF16, webnn, wasm }
+console.log('caps', caps); // { webgpu, shaderF16, wasm }
 
 // 3) Load a model (SD‑Turbo prefers WebGPU, falls back to WASM)
 const loadRes = await client.load('sd-turbo', {
-  backendPreference: ['webgpu', 'wasm'],
-  // Tell ONNX Runtime where to find WASM runtime files (see “WASM Assets”)
+  backendPreference: ['webgpu', 'wasm'], // Try WebGPU first, fallback to WASM
+  // Or force a specific backend: ['wasm'] for WASM-only, ['webgpu'] for WebGPU-only
+  // Tell ONNX Runtime where to find WASM runtime files (see "WASM Assets")
   wasmPaths: '/ort/',
   wasmNumThreads: 4,
   wasmSimd: true,
@@ -290,7 +291,7 @@ if (res.ok) {
 
 ### 5) Janus-Pro-1B quick checklist
 
-* **WebGPU-only** (no WASM/WebNN path in this adapter).
+* **WebGPU-only** (no WASM fallback in this adapter).
 * Ensure `@huggingface/transformers` is available:
 
   * **Bundled:** `npm i @huggingface/transformers` and import normally.

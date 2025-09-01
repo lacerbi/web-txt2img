@@ -1,6 +1,6 @@
 // Shared types for the public API
 
-export type BackendId = 'webgpu' | 'webnn' | 'wasm';
+export type BackendId = 'webgpu' | 'wasm';
 export type ModelId = 'sd-turbo' | 'janus-pro-1b';
 
 export type ErrorCode =
@@ -14,7 +14,6 @@ export type ErrorCode =
 export interface Capabilities {
   webgpu: boolean;
   shaderF16: boolean;
-  webnn: boolean;
   wasm: boolean;
 }
 
