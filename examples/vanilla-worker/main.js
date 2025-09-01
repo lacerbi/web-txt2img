@@ -1,7 +1,5 @@
-import { Txt2ImgWorkerClient } from 'web-txt2img';
-// Work around bundlers stripping worker in deps during prod build by importing URL explicitly
-// This keeps example prod build robust.
-import WorkerUrl from '../../packages/web-txt2img/src/worker/host.ts?worker&url';
+import { Txt2ImgClient } from 'web-txt2img';
+import { AutoTokenizer } from '@xenova/transformers';
 
 const $ = (id) => document.getElementById(id);
 const log = (m) => { 
@@ -73,8 +71,7 @@ async function init() {
   }
   
   log('System initialized...');
-  const worker = new Worker(WorkerUrl, { type: 'module' });
-  client = new Txt2ImgWorkerClient(worker);
+  client = new Txt2ImgClient();
   const caps = await client.detect();
   const capsText = Object.entries(caps)
     .filter(([k, v]) => v)
@@ -116,8 +113,20 @@ async function init() {
       ? __ORT_WASM_BASE_DEV__
       : (import.meta.env.BASE_URL || '/') + 'ort/');
     
+    // Provide tokenizer for SD-Turbo
+    let tokenizerProvider = undefined;
+    if (model === 'sd-turbo') {
+      tokenizerProvider = async () => {
+        // Use the imported AutoTokenizer
+        const tok = await AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
+        tok.pad_token_id = 0;
+        return (text, opts) => tok(text, opts);
+      };
+    }
+    
     const res = await client.load(model, {
       backendPreference,
+      ...(tokenizerProvider ? { tokenizerProvider } : {}),
       ...(wasmPaths ? { wasmPaths } : {}),
       ...(wasmPaths ? { wasmNumThreads: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2 } : {}),
       ...(wasmPaths ? { wasmSimd: true } : {}),

@@ -84,6 +84,10 @@ export async function generateImage(params: GenerateParams): Promise<GenerateRes
   return a.generate(rest);
 }
 
-// Optional worker client exports for convenience
-export { Txt2ImgWorkerClient, createTxt2ImgWorker } from './worker/client.js';
+// New inline client (main thread, no workers)
+export { Txt2ImgClient } from './runtime/inline_client.js';
+
+// Legacy worker client exports (deprecated but kept for compatibility)
+export { Txt2ImgWorkerClient } from './runtime/inline_client.js';
+export { createTxt2ImgWorker } from './worker/client.js';
 export type { WorkerRequest, WorkerResponse, WorkerBusyPolicy } from './worker/protocol.js';

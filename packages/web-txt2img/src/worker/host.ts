@@ -1,4 +1,6 @@
 // Worker host for web-txt2img — single-flight with single-slot queue
+// DEPRECATED: This file is kept for backward compatibility only.
+// The library now uses inline runtime (see runtime/inline_host.ts) instead of workers.
 /// <reference lib="WebWorker" />
 
 import {

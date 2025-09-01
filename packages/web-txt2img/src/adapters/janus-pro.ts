@@ -33,22 +33,11 @@ export class JanusProAdapter implements Adapter {
 
     // Dynamic import of Transformers.js (optional peer). Error clearly if missing.
     let hf: any = null;
-    // First try a normal bare-specifier import (works when installed and bundled by Vite)
-    try { hf = await import('@huggingface/transformers').catch(() => null); } catch {}
-    // Try to resolve via bundler if available (Vite: import.meta.resolve)
-    if (!hf) {
-      try {
-        const anyMeta: any = import.meta as any;
-        const resolved = anyMeta && typeof anyMeta.resolve === 'function'
-          ? anyMeta.resolve('@huggingface/transformers')
-          : null;
-        if (resolved) {
-          hf = await import(/* @vite-ignore */ resolved).catch(() => null);
-        }
-      } catch {}
-    }
-    // Fallback to a global (if the app loaded Transformers.js via a <script> tag)
-    if (!hf) {
+    // First try a literal import (works when installed and bundled by Vite)
+    try { 
+      hf = await import('@huggingface/transformers');
+    } catch {
+      // Fallback to a global (if the app loaded Transformers.js via a <script> tag)
       const g: any = globalThis as any;
       hf = g.transformers || g.HFTransformers || g.HuggingFaceTransformers || null;
     }

@@ -380,8 +380,8 @@ async function getTokenizer(): Promise<any> {
     AutoTokenizerMod = (mod as any).AutoTokenizer;
   } catch {
     try {
-      const spec = '@huggingface/transformers';
-      const mod2 = await import(/* @vite-ignore */ spec);
+      // Try HuggingFace transformers as fallback with literal import
+      const mod2 = await import('@huggingface/transformers');
       AutoTokenizerMod = (mod2 as any).AutoTokenizer;
     } catch {
       throw new Error('Failed to load a tokenizer. Install @xenova/transformers or provide tokenizerProvider in loadModel options.');

@@ -1,3 +1,7 @@
+// DEPRECATED: This file is kept for backward compatibility only.
+// The library now uses inline runtime (see runtime/inline_client.ts) instead of workers.
+// Use Txt2ImgClient from runtime/inline_client.ts for new code.
+
 import type { BackendId, GenerateResult, LoadOptions, ModelId } from '../types.js';
 import type { WorkerBusyPolicy, WorkerRequest, WorkerResponse, WorkerGenerateParams } from './protocol.js';
 
