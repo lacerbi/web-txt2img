@@ -1,6 +1,6 @@
 {
   "name": "web-txt2img",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "private": false,
   "type": "module",
   "author": "Luigi Acerbi",
@@ -59,12 +59,18 @@
   "peerDependencies": {
     "onnxruntime-web": "^1.18.0",
     "@xenova/transformers": "*",
-    "@huggingface/transformers": "^3" 
+    "@huggingface/transformers": "^3"
   },
   "peerDependenciesMeta": {
-    "onnxruntime-web": { "optional": true },
-    "@xenova/transformers": { "optional": true },
-    "@huggingface/transformers": { "optional": true }
+    "onnxruntime-web": {
+      "optional": true
+    },
+    "@xenova/transformers": {
+      "optional": true
+    },
+    "@huggingface/transformers": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.9.2"

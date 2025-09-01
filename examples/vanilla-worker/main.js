@@ -1,7 +1,4 @@
 import { Txt2ImgWorkerClient } from 'web-txt2img';
-// Work around bundlers stripping worker in deps during prod build by importing URL explicitly
-// This keeps example prod build robust.
-import WorkerUrl from '../../packages/web-txt2img/src/worker/host.ts?worker&url';
 
 // Import and configure transformers.js environment to fix tokenizer loading
 import { env } from '@xenova/transformers';
@@ -83,8 +80,7 @@ async function init() {
   }
   
   log('System initialized...');
-  const worker = new Worker(WorkerUrl, { type: 'module' });
-  client = new Txt2ImgWorkerClient(worker);
+  client = Txt2ImgWorkerClient.createDefault();
   const caps = await client.detect();
   const capsText = Object.entries(caps)
     .filter(([k, v]) => v)

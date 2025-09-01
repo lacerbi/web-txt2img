@@ -20,10 +20,8 @@ export default defineConfig(({ mode }) => ({
   worker: {
     format: 'es',
   },
-  resolve: {
-    alias: {
-      'web-txt2img': path.resolve(__dirname, '../../packages/web-txt2img/src/index.ts'),
-    },
+  optimizeDeps: {
+    exclude: ['web-txt2img'],
   },
   define: {
     __ORT_WASM_BASE_DEV__: JSON.stringify(ORT_WASM_BASE_DEV),
