@@ -45,6 +45,33 @@ let loadedDetails = new Map(); // modelId -> { backendUsed, bytesDownloaded? }
 let currentAbort = null;
 
 async function init() {
+  // Check for WebGPU support first
+  if (!navigator.gpu) {
+    log('WebGPU is not supported in this browser');
+    const warning = $('webgpu-warning');
+    const statusEl = $('webgpu-status');
+    if (statusEl) {
+      statusEl.textContent = 'WebGPU NOT available (navigator.gpu is undefined)';
+    }
+    if (warning) {
+      warning.style.display = 'flex';
+    }
+    // Disable all control cards and sections
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => card.classList.add('webgpu-disabled'));
+    const progressSection = document.querySelector('.progress-section');
+    if (progressSection) progressSection.classList.add('webgpu-disabled');
+    const outputGrid = document.querySelector('.output-grid');
+    if (outputGrid) outputGrid.classList.add('webgpu-disabled');
+    // Still initialize to show capabilities, but controls are disabled
+  } else {
+    // Update status to show WebGPU is available
+    const statusEl = $('webgpu-status');
+    if (statusEl) {
+      statusEl.textContent = 'WebGPU available';
+    }
+  }
+  
   log('System initialized...');
   const worker = new Worker(WorkerUrl, { type: 'module' });
   client = new Txt2ImgWorkerClient(worker);
@@ -64,7 +91,7 @@ async function init() {
 
   $('load').onclick = async () => {
     const model = sel.value;
-    const backendChoice = $('backend').value;
+    const backendChoice = 'auto';
     log(`Loading: ${model} with backend: ${backendChoice}`);
     
     // Configure backends and assets per model

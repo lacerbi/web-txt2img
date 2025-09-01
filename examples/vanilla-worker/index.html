@@ -539,6 +539,119 @@
         animation: fadeIn 1s ease;
       }
 
+      /* WebGPU Warning Card */
+      .webgpu-warning-card {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+        animation: fadeInDown 0.6s ease;
+        box-shadow: 0 4px 20px rgba(251, 191, 36, 0.1);
+      }
+
+      .warning-icon {
+        flex-shrink: 0;
+        color: #fbbf24;
+        padding-top: 0.25rem;
+      }
+
+      .warning-content {
+        flex: 1;
+      }
+
+      .warning-content h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #fbbf24;
+        margin-bottom: 0.5rem;
+      }
+
+      .warning-content > p {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .warning-details {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        padding: 1rem;
+      }
+
+      .warning-row {
+        margin-bottom: 0.75rem;
+      }
+
+      .warning-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .warning-row strong {
+        color: var(--text-primary);
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+      }
+
+      .warning-row code {
+        background: var(--bg-secondary);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+        color: #fbbf24;
+        font-size: 0.875rem;
+      }
+
+      .warning-row ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .warning-row li {
+        padding: 0.375rem 0;
+        padding-left: 1.25rem;
+        position: relative;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .warning-row li::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: #fbbf24;
+      }
+
+      .warning-row li strong {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0;
+      }
+
+      /* Disabled state for controls when WebGPU unavailable */
+      .webgpu-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+        position: relative;
+      }
+
+      .webgpu-disabled::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+      }
+
       .footer-content {
         display: flex;
         flex-direction: column;
@@ -645,6 +758,32 @@
         <p>Browser-Only Text-to-Image Library — Generate images entirely in your browser with WebGPU-accelerated AI models</p>
       </div>
 
+      <!-- WebGPU Warning Card -->
+      <div id="webgpu-warning" class="webgpu-warning-card" style="display: none;">
+        <div class="warning-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="warning-content">
+          <h3>WebGPU Not Available</h3>
+          <p>This demo requires WebGPU to run AI models in your browser. Your current browser/device doesn't support WebGPU.</p>
+          <div class="warning-details">
+            <div class="warning-row">
+              <strong>Status:</strong> <code id="webgpu-status">Checking...</code>
+            </div>
+            <div class="warning-row">
+              <strong>To enable WebGPU:</strong>
+              <ul>
+                <li><strong>Chrome/Edge 113+:</strong> Check chrome://gpu or edge://gpu</li>
+                <li><strong>Safari:</strong> Use Technology Preview with WebGPU enabled in Feature Flags</li>
+                <li><strong>Firefox:</strong> Use Nightly and enable dom.webgpu.enabled</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Controls Section -->
       <div class="controls-grid">
         <!-- Model Selection Card -->
@@ -653,13 +792,6 @@
           <div class="model-section">
             <div class="select-wrapper">
               <select id="model"></select>
-            </div>
-            <div class="select-wrapper" style="margin-top: 0.5rem;">
-              <select id="backend">
-                <option value="auto">Backend: Auto-select</option>
-                <option value="webgpu">Backend: WebGPU only</option>
-                <option value="wasm">Backend: WASM only</option>
-              </select>
             </div>
             <div class="btn-group" style="margin-top: 0.5rem;">
               <button id="model-info" class="btn btn-secondary" title="Show model info">
