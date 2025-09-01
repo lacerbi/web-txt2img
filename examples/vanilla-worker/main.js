@@ -1,5 +1,14 @@
 import { Txt2ImgClient } from 'web-txt2img';
-import { AutoTokenizer } from '@xenova/transformers';
+import { AutoTokenizer, env } from '@xenova/transformers';
+
+// Configure transformers.js to use Hugging Face CDN
+// MUST be done immediately after import, before any usage
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+env.remoteHost = 'https://huggingface.co/';
+env.remotePathTemplate = '{model}/resolve/{revision}/';
+env.useBrowserCache = true; // Re-enable cache now that we have correct URLs
+console.log('[MAIN] Configured transformers env for remote loading');
 
 const $ = (id) => document.getElementById(id);
 const log = (m) => { 
