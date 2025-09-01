@@ -1,6 +1,6 @@
 {
   "name": "web-txt2img",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
   "author": "Luigi Acerbi",
@@ -47,7 +47,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p .",
