@@ -370,24 +370,47 @@ async function getTokenizer(): Promise<any> {
   // Prefer a global AutoTokenizer (if host app preloaded it), else dynamic import.
   const g: any = globalThis as any;
   if (g.AutoTokenizer && typeof g.AutoTokenizer.from_pretrained === 'function') {
+    // Defensive: ensure proper configuration for global transformers.js
+    if (g.env) {
+      g.env.allowLocalModels = false;
+      g.env.allowRemoteModels = true;
+      g.env.remoteHost = 'https://huggingface.co/';
+      g.env.remotePathTemplate = '{model}/resolve/{revision}/';
+    }
     _tokInstance = await g.AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
     _tokInstance.pad_token_id = 0;
     return (text: string, opts: any) => _tokInstance(text, opts);
   }
   let AutoTokenizerMod: any = null;
+  let env: any = null;
   try {
     const mod = await import('@xenova/transformers');
     AutoTokenizerMod = (mod as any).AutoTokenizer;
+    env = (mod as any).env;
   } catch {
     try {
       const spec = '@huggingface/transformers';
       const mod2 = await import(/* @vite-ignore */ spec);
       AutoTokenizerMod = (mod2 as any).AutoTokenizer;
+      env = (mod2 as any).env;
     } catch {
       throw new Error('Failed to load a tokenizer. Install @xenova/transformers or provide tokenizerProvider in loadModel options.');
     }
   }
-  _tokInstance = await AutoTokenizerMod.from_pretrained('Xenova/clip-vit-base-patch16');
+  
+  // Defensive: configure env if available from dynamic import
+  if (env) {
+    env.allowLocalModels = false;
+    env.allowRemoteModels = true;
+    env.remoteHost = 'https://huggingface.co/';
+    env.remotePathTemplate = '{model}/resolve/{revision}/';
+  }
+  
+  // Load tokenizer with explicit options to force remote loading
+  _tokInstance = await AutoTokenizerMod.from_pretrained('Xenova/clip-vit-base-patch16', {
+    local_files_only: false,
+    revision: 'main'
+  });
   _tokInstance.pad_token_id = 0;
   return (text: string, opts: any) => _tokInstance(text, opts);
 }
